@@ -1,0 +1,47 @@
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: concerts_db
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    command: tail -f /dev/null # Placeholder until Django is initialized
+
+  celery:
+    build: ./backend
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+      - backend
+    command: tail -f /dev/null # Placeholder until Celery is configured
+
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    command: tail -f /dev/null # Placeholder until Next.js is initialized
