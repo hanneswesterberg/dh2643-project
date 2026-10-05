@@ -23,7 +23,7 @@ services:
     depends_on:
       - db
       - redis
-    command: tail -f /dev/null # Placeholder until Django is initialized
+    #command: tail -f /dev/null # Placeholder until Django is initialized
 
   celery:
     build: ./backend
@@ -44,4 +44,4 @@ services:
       - "3000:3000"
     depends_on:
       - backend
-    command: tail -f /dev/null # Placeholder until Next.js is initialized
+    #command: tail -f /dev/null # Placeholder until Next.js is initialized
