@@ -1,5 +1,5 @@
 'use client'; // Forces Next.js to render this strictly in the browser
-
+ 
 import { useEffect, useRef } from 'react';
 import 'ol/ol.css'; // Required for the map to display correctly
 import Map from 'ol/Map';
