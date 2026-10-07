@@ -19,6 +19,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Initialize environ
 env = environ.Env()
+env.read_env(BASE_DIR.parent / ".env")
 
 # Cast TICKSTER_API_KEY as a string. No default means it will fail fast if missing.
 TICKSTER_API_KEY = env("TICKSTER_API_KEY")
@@ -47,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'events',
+    'users',
 ]
 
 MIDDLEWARE = [
