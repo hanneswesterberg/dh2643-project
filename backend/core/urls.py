@@ -16,9 +16,21 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.reverse import reverse
+
+
+@api_view(['GET'])
+def api_root(request):
+    return Response({
+        'user': reverse('user-list', request=request),
+        'events': reverse('event-list', request=request),
+    })
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('users.urls')),
+    path('api/', api_root, name='combined-api-root'),
+    path('api/', include('users.urls')),
     path('api/', include('events.urls')),
 ]
