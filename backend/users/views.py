@@ -2,7 +2,36 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
+from django.db import IntegrityError, transaction
 from events.models import Event
+from .models import UserProfile
+
+
+class RegisterView(APIView):
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        if not isinstance(username, str) or not username.strip():
+            return Response({"error": "A username is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not isinstance(password, str) or not password:
+            return Response({"error": "A password is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        username = username.strip()
+        if User.objects.filter(username=username).exists():
+            return Response({"error": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(username=username, password=password)
+                UserProfile.objects.create(user=user)
+        except IntegrityError:
+            if User.objects.filter(username=username).exists():
+                return Response({"error": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
+            raise
+
+        return Response({"message": "User registered successfully"}, status=status.HTTP_201_CREATED)
 
 class CurrentUserView(APIView):
     def get(self, request):
@@ -23,6 +52,11 @@ class LoginView(APIView):
             login(request, user)  # Sets the secure session cookie
             return Response({"message": "Logged in successfully"}, status=status.HTTP_200_OK)
         return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+
+class LogoutView(APIView):
+    def post(self, request):
+        logout(request)
+        return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
 
 class SavedEventsView(APIView):
     def get(self, request):
@@ -58,5 +92,3 @@ class ManageSavedEventView(APIView):
             return Response({"message": "Event removed"}, status=status.HTTP_200_OK)
         except Event.DoesNotExist:
             return Response({"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
-
-
