@@ -1,18 +1,9 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from django.urls import path
 from . import views
 
-
-router = DefaultRouter()
-router.register(r'users', views.UserViewSet, basename='user')
-
 urlpatterns = [
-    path('', include(router.urls)),
-    path('login/', views.LoginView.as_view({'post': 'create'}), name='login'),
-    path('saved-events/<int:event_id>/', views.SavedEventsView.as_view({'post': 'create'}), name='saved-events'),
+    path('me/', views.CurrentUserView.as_view(), name='current-user'),
+    path('login/', views.LoginView.as_view(), name='login'),
+    path('saved-events/', views.SavedEventsView.as_view(), name='list-saved-events'),
+    path('saved-events/<int:event_id>/', views.ManageSavedEventView.as_view(), name='manage-saved-event'),
 ]
-
-
-
-#router.register(r'login', views.LoginView, basename='login')
-#router.register(r'saved-events', views.SavedEventsView, basename='saved-events')

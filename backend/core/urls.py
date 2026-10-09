@@ -24,13 +24,13 @@ from rest_framework.reverse import reverse
 @api_view(['GET'])
 def api_root(request):
     return Response({
-        'user': reverse('user-list', request=request),
+        'current_user': reverse('current-user', request=request),
         'events': reverse('event-list', request=request),
     })
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', api_root, name='combined-api-root'),
-    path('api/', include('users.urls')),
-    path('api/', include('events.urls')),
+    path('api/users/', include('users.urls')),
+    path('api/events/', include('events.urls')),
 ]
