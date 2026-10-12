@@ -9,7 +9,7 @@ const NavigationLinks: React.FC = () => {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    color: 'pink' // This sets the font color to a dark shade
+    color: 'pink'
   };
 
   return (

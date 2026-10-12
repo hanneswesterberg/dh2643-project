@@ -3,7 +3,7 @@ import React from 'react';
 import SearchBar from './SearchBar'; //'@/components/navbar/SearchBar/SearchBar'
 import Logo from './Logo';
 import NavigationLinks from './NavigationLinks';
-import Login from './Login'; // Import the Login component
+import Login from './Login';
 //import useIsMobile from '@/hooks/useIsMobile';
 //import NavbarMobile from '@/components/navbar/NavbarMobile/NavbarMobile';
 

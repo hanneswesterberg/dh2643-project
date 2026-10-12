@@ -9,9 +9,11 @@ export default function Home() {
   const [search, setSearch] = useState('');
 
   return (
-    <main>
+    <main className="flex h-screen flex-col overflow-hidden">
+      <header className="relative z-50 shrink-0">
       <NavBar search={search} onSearchChange={setSearch} />
-      {/* <ConcertMap /> */}
+      </header>
+      <ConcertMap />
     </main>
   );
 }

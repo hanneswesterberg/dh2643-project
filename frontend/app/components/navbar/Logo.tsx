@@ -12,7 +12,7 @@ const Logo: React.FC = () => {
           alt="TakeMeOut Logo"
           width={100} // Adjust width as needed
           height={50} // Adjust height as needed
-          objectFit="contain" // Adjust as needed for your specific logo
+          objectFit="contain" // Adjust as needed for logo
         />
       </div>
     </Link>
