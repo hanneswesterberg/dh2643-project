@@ -1,5 +1,5 @@
 
-class User{
+export class User{
     private _name : string
     private _password : string
     private _username : string
@@ -59,16 +59,35 @@ class User{
         // TODO: add validation for the username regarding:
         // - non-duplicate
         // - non-offensive?
-        // Check for libraries that can accomplish validate emails
         return validity
     }
 
     private emailIsValid(email:string) : boolean{
         const validity : boolean = false
-        // TODO: add validation for the username regarding:
-        // - non-duplicate
-        // - non-offensive?
+        // TODO: add validation for the email regarding:
+        // - proper email format? (contains @)
+        // - external validation?
         // Check for libraries that can accomplish validate emails
         return validity
     }
+}
+
+export type UserProfileData = {
+    name: string,
+    password: string,
+    username: string,
+    email: string
+};
+
+export function getUserProfile() : UserProfileData{
+    // Do we even need a class for the User?
+    // We get all the data directly from the backend as a JSON anyways
+
+    const profileObject : UserProfileData = {
+        name: 'Elias',
+        password: 'mehmet',
+        username: 'Radbananas',
+        email: 'elias.skrap@gmail.com'};
+
+    return profileObject;
 }
