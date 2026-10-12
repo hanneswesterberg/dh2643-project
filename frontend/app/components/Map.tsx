@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import 'ol/ol.css';
 
-import type { EventFeatureCollection } from '../lib/definition';
-import { mockEvents } from '../lib/mockEvents';
+import type { Event, EventFeatureCollection } from '../lib/definition';
 
 import Feature from 'ol/Feature';
-import Map from 'ol/Map';
+import OLMap from 'ol/Map';
 import View from 'ol/View';
 import Overlay from 'ol/Overlay';
 
@@ -38,29 +38,54 @@ type EventDetails = {
   genre: string;
 };
 
+type VenueGroup = {
+  key: string;
+  name: string;
+  coordinates: number[];
+  events: Event[];
+};
+
+function groupEventsByVenue(events: Event[]): VenueGroup[] {
+  const groups = new Map<string, VenueGroup>();
+
+  for (const event of events) {
+    const name = event.properties.venue_name.trim();
+    const coordinates = event.geometry.coordinates;
+    const key = `${name.toLocaleLowerCase()}|${coordinates.join(',')}`;
+    const group = groups.get(key);
+    if (group) {
+      group.events.push(event);
+    } else {
+      groups.set(key, {
+        key,
+        name,
+        coordinates,
+        events: [event],
+      });
+    }
+  }
+
+  return Array.from(groups.values());
+}
+
 export default function ConcertMap() {
   const mapRef = useRef<HTMLDivElement>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<Map | null>(null);
+  const mapInstanceRef = useRef<OLMap | null>(null);
   const markerSourceRef = useRef<VectorSource<Feature<Point>> | null>(null);
   const markerFeaturesRef = useRef<Feature<Point>[]>([]);
   const eventsRef = useRef<EventFeatureCollection | null>(null);
+  const venuesRef = useRef<Map<string, VenueGroup>>(new Map());
   const selectedEventRef =
     useRef<EventFeatureCollection['features'][number] | null>(null);
+  const selectedVenueRef = useRef<VenueGroup | null>(null);
   const [events, setEvents] = useState<EventFeatureCollection | null>(null);
   const [selectedEvent, setSelectedEvent] =
     useState<EventFeatureCollection['features'][number] | null>(null);
+  const [selectedVenue, setSelectedVenue] = useState<VenueGroup | null>(null);
   const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
-  const [selectedGenres, setSelectedGenres] = useState<Set<string>>(
-    () => new Set()
-  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showingMockEvents, setShowingMockEvents] = useState(false);
-
-  const genres = Array.from(
-    new Set(events?.features.map((event) => event.properties.genre) ?? [])
-  ).sort();
+  const [popupElement, setPopupElement] = useState<HTMLDivElement | null>(null);
 
   const eventDetails: EventDetails | null = selectedEvent
     ? {
@@ -89,37 +114,15 @@ export default function ConcertMap() {
         }
 
         const data: EventFeatureCollection = await response.json();
-        const includeMockEvents = process.env.NODE_ENV === 'development';
-        const displayEvents = includeMockEvents
-          ? { ...data, features: [...data.features, ...mockEvents.features] }
-          : data;
-        eventsRef.current = displayEvents;
-        setEvents(displayEvents);
-        setSelectedGenres(
-          new Set(displayEvents.features.map((event) => event.properties.genre))
-        );
-        setShowingMockEvents(includeMockEvents);
+        eventsRef.current = data;
+        setEvents(data);
       } catch (caughtError) {
         if (!controller.signal.aborted) {
-          const message =
+          setError(
             caughtError instanceof Error
               ? caughtError.message
-              : 'Could not load events from the API.';
-          if (process.env.NODE_ENV === 'development') {
-            eventsRef.current = mockEvents;
-            setEvents(mockEvents);
-            setSelectedGenres(
-              new Set(
-                mockEvents.features.map((event) => event.properties.genre)
-              )
-            );
-            setShowingMockEvents(true);
-            setError(
-              `${message}. Showing sample events for frontend development.`
-            );
-          } else {
-            setError(message);
-          }
+              : 'Could not load events from the API.'
+          );
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -133,7 +136,7 @@ export default function ConcertMap() {
   }, []);
 
   useEffect(() => {
-    if (!mapRef.current || !popupRef.current) return;
+    if (!mapRef.current) return;
 
     const markerSource = new VectorSource<Feature<Point>>();
     markerSourceRef.current = markerSource;
@@ -149,14 +152,17 @@ export default function ConcertMap() {
       }),
     });
 
+    const overlayElement = document.createElement('div');
+    setPopupElement(overlayElement);
+
     const popup = new Overlay({
-      element: popupRef.current,
+      element: overlayElement,
       positioning: 'bottom-center',
       offset: [0, -18],
       stopEvent: true,
     });
 
-    const map = new Map({
+    const map = new OLMap({
       target: mapRef.current,
       layers: [
         new TileLayer({
@@ -188,28 +194,41 @@ export default function ConcertMap() {
         (feature) => feature,
         { layerFilter: (layer) => layer === eventsLayer }
       );
-      const eventId = clickedMarker?.get('eventId');
-      const event = eventsRef.current?.features.find(
-        (candidate) => candidate.id === eventId
-      );
+      const venueKey = clickedMarker?.get('venueKey');
+      const venue =
+        typeof venueKey === 'string'
+          ? venuesRef.current.get(venueKey)
+          : undefined;
 
-      if (!event) {
+      if (!venue) {
         popup.setPosition(undefined);
         selectedEventRef.current = null;
+        selectedVenueRef.current = null;
         setSelectedEvent(null);
+        setSelectedVenue(null);
         return;
       }
 
-      if (selectedEventRef.current?.id === event.id) {
+      if (selectedVenueRef.current?.key === venue.key) {
         popup.setPosition(undefined);
         selectedEventRef.current = null;
+        selectedVenueRef.current = null;
         setSelectedEvent(null);
+        setSelectedVenue(null);
         return;
       }
 
-      selectedEventRef.current = event;
-      setSelectedEvent(event);
-      popup.setPosition(fromLonLat(event.geometry.coordinates));
+      selectedVenueRef.current = venue;
+      setSelectedVenue(venue);
+      if (venue.events.length === 1) {
+        const [event] = venue.events;
+        selectedEventRef.current = event;
+        setSelectedEvent(event);
+      } else {
+        selectedEventRef.current = null;
+        setSelectedEvent(null);
+      }
+      popup.setPosition(fromLonLat(venue.coordinates));
     };
     map.on('singleclick', handleMapClick);
 
@@ -225,6 +244,7 @@ export default function ConcertMap() {
       mapInstanceRef.current = null;
       markerSourceRef.current = null;
       markerFeaturesRef.current = [];
+      setPopupElement(null);
       map.setTarget(undefined);
     };
   }, []);
@@ -232,12 +252,13 @@ export default function ConcertMap() {
   useEffect(() => {
     if (!events) return;
 
-    const markerFeatures = events.features.map(
-      (event) =>
+    const venues = groupEventsByVenue(events.features);
+    venuesRef.current = new Map(venues.map((venue) => [venue.key, venue]));
+    const markerFeatures = venues.map(
+      (venue) =>
         new Feature({
-          geometry: new Point(fromLonLat(event.geometry.coordinates)),
-          eventId: event.id,
-          genre: event.properties.genre,
+          geometry: new Point(fromLonLat(venue.coordinates)),
+          venueKey: venue.key,
         })
     );
     markerFeaturesRef.current = markerFeatures;
@@ -246,33 +267,15 @@ export default function ConcertMap() {
     if (!markerSource) return;
 
     markerSource.clear(true);
-    markerSource.addFeatures(
-      markerFeatures.filter((marker) =>
-        selectedGenres.has(marker.get('genre'))
-      )
-    );
-
-  }, [events, selectedGenres]);
-
-  const toggleGenre = (genre: string) => {
-    setSelectedGenres((current) => {
-      const next = new Set(current);
-      if (next.has(genre)) {
-        next.delete(genre);
-      } else {
-        next.add(genre);
-      }
-      return next;
-    });
-  };
+    markerSource.addFeatures(markerFeatures);
+  }, [events]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
       <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
       {(loading ||
         error ||
-        showingMockEvents ||
-        (events && events.features.length === 0)) && (
+        (events !== null && events.features.length === 0)) && (
         <div
           role={error ? 'alert' : 'status'}
           style={{
@@ -288,59 +291,17 @@ export default function ConcertMap() {
           }}
         >
           {error ??
-            (showingMockEvents
-              ? 'Development mode: sample events are mixed with API events.'
-              : loading
-                ? 'Loading events…'
-                : 'No events available from the API.')}
+            (loading ? 'Loading events…' : 'No events available from the API.')}
         </div>
       )}
-      {genres.length > 0 && (
-        <fieldset
-          style={{
-            position: 'absolute',
-            top: '16px',
-            right: '16px',
-            zIndex: 1000,
-            display: 'grid',
-            gap: '8px',
-            maxHeight: 'calc(100vh - 32px)',
-            overflowY: 'auto',
-            margin: 0,
-            padding: '12px 16px',
-            border: '1px solid #d4d4d4',
-            borderRadius: '8px',
-            background: 'white',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-            color: '#171717',
-          }}
-        >
-          <legend style={{ padding: '0 4px', fontWeight: 600 }}>Genres</legend>
-          {genres.map((genre) => (
-            <label
-              key={genre}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={selectedGenres.has(genre)}
-                onChange={() => toggleGenre(genre)}
-              />
-              {genre}
-            </label>
-          ))}
-        </fieldset>
-      )}
-      <div
-        ref={popupRef}
+      {popupElement &&
+        createPortal(
+          <div
         style={{
           minWidth: '220px',
           maxWidth: '280px',
+          maxHeight: 'min(70vh, 480px)',
+          overflowY: 'auto',
           padding: '12px 14px',
           borderRadius: '8px',
           background: 'white',
@@ -350,8 +311,29 @@ export default function ConcertMap() {
           pointerEvents: 'auto',
         }}
       >
-        {eventDetails ? (
+        {selectedEvent && eventDetails ? (
           <>
+            {selectedVenue && selectedVenue.events.length > 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  selectedEventRef.current = null;
+                  setSelectedEvent(null);
+                }}
+                style={{
+                  marginBottom: '8px',
+                  padding: 0,
+                  border: 0,
+                  background: 'none',
+                  color: '#1d4ed8',
+                  cursor: 'pointer',
+                  font: 'inherit',
+                  textDecoration: 'underline',
+                }}
+              >
+                Back to {selectedVenue.name} events
+              </button>
+            )}
             <div>
               <strong>{eventDetails.name}</strong>
             </div>
@@ -413,10 +395,41 @@ export default function ConcertMap() {
               </div>
             )}
           </>
+        ) : selectedVenue ? (
+          <>
+            <strong>{selectedVenue.name}</strong>
+            <div style={{ marginTop: '8px', display: 'grid', gap: '6px' }}>
+              {selectedVenue.events.map((event) => (
+                <button
+                  key={event.id}
+                  type="button"
+                  onClick={() => {
+                    selectedEventRef.current = event;
+                    setSelectedEvent(event);
+                  }}
+                  style={{
+                    padding: '8px',
+                    border: '1px solid #d4d4d4',
+                    borderRadius: '6px',
+                    background: 'white',
+                    color: '#171717',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    font: 'inherit',
+                  }}
+                >
+                  <strong>{event.properties.name}</strong>
+                  <div>{new Date(event.properties.start).toLocaleString()}</div>
+                </button>
+              ))}
+            </div>
+          </>
         ) : (
-          <span>Select an event marker to view its details.</span>
+          <span>Select a venue marker to view its events.</span>
         )}
-      </div>
+          </div>,
+          popupElement
+        )}
       {selectedArtist && (
         <div
           onClick={() => setSelectedArtist(null)}
