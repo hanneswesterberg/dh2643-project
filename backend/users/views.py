@@ -1,11 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
 from events.models import Event
 from .models import UserProfile
+from .serializers import UserAccountSerializer
 
 
 class RegisterView(APIView):
@@ -20,7 +21,7 @@ class RegisterView(APIView):
 
         username = username.strip()
         if User.objects.filter(username=username).exists():
-            return Response({"error": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Username already exists"}, status=status.HTTP_409_CONFLICT)
 
         try:
             with transaction.atomic():
@@ -28,7 +29,7 @@ class RegisterView(APIView):
                 UserProfile.objects.create(user=user)
         except IntegrityError:
             if User.objects.filter(username=username).exists():
-                return Response({"error": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Username already exists"}, status=status.HTTP_409_CONFLICT)
             raise
 
         return Response({"message": "User registered successfully"}, status=status.HTTP_201_CREATED)
@@ -41,6 +42,43 @@ class CurrentUserView(APIView):
                 "email": request.user.email
             }, status=status.HTTP_200_OK)
         return Response({"error": "Not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
+
+    def put(self, request):
+        return self._update_account(request, partial=False)
+
+    def patch(self, request):
+        return self._update_account(request, partial=True)
+
+    def delete(self, request):
+        if not request.user.is_authenticated:
+            return Response({"error": "Not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        user = request.user
+        logout(request)
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def _update_account(self, request, partial):
+        if not request.user.is_authenticated:
+            return Response({"error": "Not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        user: User = request.user
+        serializer = UserAccountSerializer(
+            user,
+            data=request.data,
+            many=False,
+            partial=partial,
+        )
+        serializer.is_valid(raise_exception=True)
+        password_was_changed = request.data.get('password') is not None
+        serializer.save()
+        if password_was_changed:
+            update_session_auth_hash(request, user)
+        return Response({
+            "username": user.username,
+            "email": user.email,
+        }, status=status.HTTP_200_OK)
+
 
 class LoginView(APIView):
     def post(self, request):
