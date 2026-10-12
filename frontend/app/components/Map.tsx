@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import 'ol/ol.css';
 
-import { placeholderEvents } from '../lib/definition';
+import type { EventFeatureCollection } from '../lib/definition';
 
 import Map from 'ol/Map';
 import View from 'ol/View';
@@ -14,12 +14,10 @@ import VectorLayer from 'ol/layer/Vector';
 
 import OSM from 'ol/source/OSM';
 import VectorSource from 'ol/source/Vector';
-
 import GeoJSON from 'ol/format/GeoJSON';
 
 import { fromLonLat } from 'ol/proj';
 
-import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 
 import Style from 'ol/style/Style';
@@ -31,7 +29,7 @@ type EventDetails = {
   ticksterId: string;
   name: string;
   start: string;
-  end: string;
+  end: string | null;
   ticketUrl: string;
   imageUrl: string;
   venueName: string;
@@ -41,68 +39,76 @@ type EventDetails = {
 export default function ConcertMap() {
   const mapRef = useRef<HTMLDivElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-  const firstEvent = placeholderEvents.features[0];
-  const eventDetails: EventDetails | null = firstEvent
+  const mapInstanceRef = useRef<Map | null>(null);
+  const [events, setEvents] = useState<EventFeatureCollection | null>(null);
+  const eventsRef = useRef<EventFeatureCollection | null>(null);
+  const [selectedEvent, setSelectedEvent] =
+    useState<EventFeatureCollection['features'][number] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const eventDetails: EventDetails | null = selectedEvent
     ? {
-        ticksterId: firstEvent.properties.tickster_id,
-        name: firstEvent.properties.name,
-        start: firstEvent.properties.start,
-        end: firstEvent.properties.end,
-        ticketUrl: firstEvent.properties.ticket_url,
-        imageUrl: firstEvent.properties.image_url,
-        venueName: firstEvent.properties.venue_name,
-        artists: firstEvent.properties.artists.map((artist) => artist.name),
+        ticksterId: selectedEvent.properties.tickster_id,
+        name: selectedEvent.properties.name,
+        start: selectedEvent.properties.start,
+        end: selectedEvent.properties.end,
+        ticketUrl: selectedEvent.properties.ticket_url,
+        imageUrl: selectedEvent.properties.image_url,
+        venueName: selectedEvent.properties.venue_name,
+        artists: selectedEvent.properties.artists.map((artist) => artist.name),
       }
     : null;
 
   useEffect(() => {
-    if (!mapRef.current || !popupRef.current || !firstEvent) return;
+    const controller = new AbortController();
 
-    const geoJsonFormat = new GeoJSON();
-    const concertSource = new VectorSource({
-      features: geoJsonFormat.readFeatures(placeholderEvents, {
-        dataProjection: 'EPSG:4326',
-        featureProjection: 'EPSG:3857',
-      }),
+    const loadEvents = async () => {
+      try {
+        const response = await fetch('/api/events/', {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error(`Events API request failed (${response.status})`);
+        }
+
+        const data: EventFeatureCollection = await response.json();
+        eventsRef.current = data;
+        setEvents(data);
+      } catch (caughtError) {
+        if (!controller.signal.aborted) {
+          setError(
+            caughtError instanceof Error
+              ? caughtError.message
+              : 'Could not load events from the API.'
+          );
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadEvents();
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current || !popupRef.current) return;
+
+    const vectorSource = new VectorSource({
+      url: '/api/events/',
+      format: new GeoJSON(),
     });
-
-    const concertLayer = new VectorLayer({
-      source: concertSource,
-    });
-
-    const firstEventLocation = fromLonLat(firstEvent.geometry.coordinates);
-
-    // Create marker
-    const marker = new Feature({
-      geometry: new Point(firstEventLocation),
-    });
-
-    marker.setStyle(
-      new Style({
+    const eventsLayer = new VectorLayer({
+      source: vectorSource,
+      style: new Style({
         image: new CircleStyle({
-          radius: 15,
-
-          fill: new Fill({
-            color: 'red',
-          }),
-
-          stroke: new Stroke({
-            color: 'white',
-            width: 4,
-          }),
+          radius: 8,
+          fill: new Fill({ color: '#2563eb' }),
+          stroke: new Stroke({ color: 'white', width: 2 }),
         }),
-      })
-    );
-
-    // Marker source
-    const markerSource = new VectorSource({
-      features: [marker],
-    });
-
-    // Marker layer
-    const markerLayer = new VectorLayer({
-      source: markerSource,
-      zIndex: 1000,
+      }),
     });
 
     const popup = new Overlay({
@@ -111,51 +117,58 @@ export default function ConcertMap() {
       offset: [0, -18],
       stopEvent: true,
     });
-
     // Map
     const map = new Map({
       target: mapRef.current,
-
       layers: [
         new TileLayer({
           source: new OSM(),
         }),
-
-        concertLayer,
-
-        markerLayer,
+        eventsLayer,
       ],
       overlays: [popup],
-
       view: new View({
-        center: firstEventLocation,
+        center: fromLonLat([18.0686, 59.3293]),
         zoom: 11,
       }),
     });
+    mapInstanceRef.current = map;
 
     const target = mapRef.current;
     const handlePointerMove = (event: { pixel: number[] }) => {
       const isMarkerHovered = map.hasFeatureAtPixel(event.pixel, {
-        layerFilter: (layer) => layer === markerLayer,
+        layerFilter: (layer) => layer === eventsLayer,
       });
 
       target.style.cursor = isMarkerHovered ? 'pointer' : '';
     };
     map.on('pointermove', handlePointerMove);
 
-    const handleMapClick = (event: { pixel: number[] }) => {
-      const isMarkerClicked = map.hasFeatureAtPixel(event.pixel, {
-        layerFilter: (layer) => layer === markerLayer,
-      });
-
-      if (!isMarkerClicked) {
+    const handleMapClick = (click: { pixel: number[] }) => {
+      const clickedMarker = map.forEachFeatureAtPixel(
+        click.pixel,
+        (feature) => feature,
+        { layerFilter: (layer) => layer === eventsLayer }
+      );
+      const geometry = clickedMarker?.getGeometry();
+      if (!(geometry instanceof Point) || !clickedMarker) {
         popup.setPosition(undefined);
+        setSelectedEvent(null);
         return;
       }
 
-      popup.setPosition(
-        popup.getPosition() ? undefined : firstEventLocation
+      const ticksterId = clickedMarker.get('tickster_id');
+      const event = eventsRef.current?.features.find(
+        (candidate) => candidate.properties.tickster_id === ticksterId
       );
+      if (!event) {
+        popup.setPosition(undefined);
+        setSelectedEvent(null);
+        return;
+      }
+
+      setSelectedEvent(event);
+      popup.setPosition(geometry.getCoordinates());
     };
     map.on('singleclick', handleMapClick);
 
@@ -168,13 +181,40 @@ export default function ConcertMap() {
       map.un('pointermove', handlePointerMove);
       map.un('singleclick', handleMapClick);
       target.removeEventListener('pointerleave', handlePointerLeave);
+      mapInstanceRef.current = null;
       map.setTarget(undefined);
     };
-  }, [firstEvent]);
+  }, []);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const firstEvent = events?.features[0];
+    if (!map || !firstEvent) return;
+
+    map.getView().setCenter(fromLonLat(firstEvent.geometry.coordinates));
+  }, [events]);
 
   return (
     <div style={{ width: '100%', height: '100vh' }}>
       <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+      {(loading || error || (events && events.features.length === 0)) && (
+        <div
+          role={error ? 'alert' : 'status'}
+          style={{
+            position: 'absolute',
+            top: '16px',
+            left: '16px',
+            zIndex: 1000,
+            padding: '10px 14px',
+            borderRadius: '8px',
+            background: 'white',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+            color: error ? '#b91c1c' : '#171717',
+          }}
+        >
+          {error ?? (loading ? 'Loading events…' : 'No events available from the API.')}
+        </div>
+      )}
       <div
         ref={popupRef}
         style={{
@@ -203,7 +243,10 @@ export default function ConcertMap() {
               Starts: {new Date(eventDetails.start).toLocaleString()}
             </div>
             <div>
-              Ends: {new Date(eventDetails.end).toLocaleString()}
+              Ends:{' '}
+              {eventDetails.end
+                ? new Date(eventDetails.end).toLocaleString()
+                : 'Unavailable'}
             </div>
             <div>Event ID: {eventDetails.ticksterId}</div>
             {eventDetails.ticketUrl && (
@@ -230,7 +273,7 @@ export default function ConcertMap() {
             )}
           </>
         ) : (
-          <span>No local event details available.</span>
+          <span>Select an event marker to view its details.</span>
         )}
       </div>
     </div>

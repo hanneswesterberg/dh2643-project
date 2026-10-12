@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
+        source: '/api/events',
+        destination: 'http://backend:8000/api/events/',
+      },
+      {
         source: '/api/:path*',
         destination: 'http://backend:8000/api/:path*', // Routes directly to Django
       },
