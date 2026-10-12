@@ -45,11 +45,34 @@ def sync_tickster_data(data: dict):
         if not tickster_id:
             continue
 
+        valid_artist_names = []
+        spotify_artists = e_data.get("spotifyArtists", [])
+        performers = e_data.get("performers", [])
+
+        if spotify_artists:
+            for sa in spotify_artists:
+                artist_name = sa.get("name")
+                if artist_name:
+                    valid_artist_names.append(artist_name[:255])
+
+        else:
+            for perf in performers:
+                if ":" in perf or len(perf) > 60:
+                    continue
+
+                perf_name = perf.strip()
+                if perf_name:
+                    valid_artist_names.append(perf_name[:255])
+
+        # Exclude event entirely if no valid artists were found
+        if not valid_artist_names:
+            continue
+
         # Link to correct venue
         v_id = e_data.get("venueId")
         venue = venue_map.get(v_id)
 
-        # Upsert event (Django autoconverts ISO-8601 strings to DateTime)
+        # Upsert event
         event, created = Event.objects.update_or_create(
             tickster_id=tickster_id,
             defaults={
@@ -63,30 +86,11 @@ def sync_tickster_data(data: dict):
             }
         )
 
-        # Extract artists
+        # Create/get Artist objects and link them
         artists_to_link = []
-        spotify_artists = e_data.get("spotifyArtists", [])
-        performers = e_data.get("performers", [])
+        for name in valid_artist_names:
+            artist, _ = Artist.objects.get_or_create(name=name)
+            artists_to_link.append(artist)
 
-        if spotify_artists:
-            # Spotify names are best, use if available
-            for sa in spotify_artists:
-                artist_name = sa.get("name")
-                if artist_name:
-                    artist, _ = Artist.objects.update_or_create(name=artist_name[:255])
-                    artists_to_link.append(artist)
-        else:
-            # Fallback: Clear performers from obvious non-performer values
-            for perf in performers:
-                # Ignore rows containing colon or very long strings
-                if ":" in perf or len(perf) > 60:
-                    continue
-                
-                perf_name = perf.strip()
-                if perf_name:
-                    artist, _ = Artist.objects.update_or_create(name=perf_name[:255])
-                    artists_to_link.append(artist)
+        event.artists.set(artists_to_link)
 
-        # Link artists to event (replaces existing links)
-        if artists_to_link:
-            event.artists.set(artists_to_link)
