@@ -21,7 +21,7 @@ class RegisterView(APIView):
 
         username = username.strip()
         if User.objects.filter(username=username).exists():
-            return Response({"error": "Username already exists"}, status=status.HTTP_409_CONFLICT)
+            return Response({"error": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             with transaction.atomic():
@@ -29,7 +29,7 @@ class RegisterView(APIView):
                 UserProfile.objects.create(user=user)
         except IntegrityError:
             if User.objects.filter(username=username).exists():
-                return Response({"error": "Username already exists"}, status=status.HTTP_409_CONFLICT)
+                return Response({"error": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
             raise
 
         return Response({"message": "User registered successfully"}, status=status.HTTP_201_CREATED)
