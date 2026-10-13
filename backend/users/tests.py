@@ -28,6 +28,25 @@ class RegisterViewTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(User.objects.count(), 0)
 
+    def test_register_rejects_blank_or_non_string_credentials(self):
+        response = self.client.post(
+            '/api/users/register/',
+            {'username': '   ', 'password': '   '},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(User.objects.count(), 0)
+
+        response = self.client.post(
+            '/api/users/register/',
+            {'username': 123, 'password': ['not', 'a', 'string']},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(User.objects.count(), 0)
+
     def test_register_rejects_existing_username(self):
         User.objects.create_user(username='existing-user', password='secure-password')
 
