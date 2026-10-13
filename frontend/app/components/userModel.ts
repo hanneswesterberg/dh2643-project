@@ -74,7 +74,6 @@ export class User{
 
 export type UserProfileData = {
     name: string,
-    password: string,
     username: string,
     email: string
 };
@@ -85,9 +84,10 @@ export function getUserProfile() : UserProfileData{
 
     const profileObject : UserProfileData = {
         name: 'Elias',
-        password: 'mehmet',
         username: 'Radbananas',
         email: 'elias.skrap@gmail.com'};
 
     return profileObject;
 }
+
+// fetch('/api/users/me', {credentials: 'include'})

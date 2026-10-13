@@ -1,11 +1,11 @@
 import UserProfile from "../components/Profile";
-import {UserProfileData, getUserProfile} from "../components/userModel";
+import { getUserProfile } from "../components/userModel";
 
-export default function Profile(){
-    const userData : UserProfileData = getUserProfile();
+export default function Profile() {
+    const userData = getUserProfile();
     return (
         <main>
-            <UserProfile profileProp={userData}></UserProfile>
+            <UserProfile profileProp={userData} />
         </main>
     );
 }
