@@ -11,11 +11,6 @@ services:
     ports:
       - "5432:5432"
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
   backend:
     build: ./backend
     env_file:
@@ -26,18 +21,7 @@ services:
       - "8000:8000"
     depends_on:
       - db
-      - redis
     #command: tail -f /dev/null # Placeholder until Django is initialized
-
-  celery:
-    build: ./backend
-    volumes:
-      - ./backend:/app
-    depends_on:
-      - db
-      - redis
-      - backend
-    command: tail -f /dev/null # Placeholder until Celery is configured
 
   frontend:
     build: ./frontend
