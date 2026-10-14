@@ -78,16 +78,3 @@ export type UserProfileData = {
     email: string
 };
 
-export function getUserProfile() : UserProfileData{
-    // Do we even need a class for the User?
-    // We get all the data directly from the backend as a JSON anyways
-
-    const profileObject : UserProfileData = {
-        name: 'Elias',
-        username: 'Radbananas',
-        email: 'elias.skrap@gmail.com'};
-
-    return profileObject;
-}
-
-// fetch('/api/users/me', {credentials: 'include'})
