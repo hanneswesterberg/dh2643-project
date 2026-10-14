@@ -7,17 +7,24 @@ import Login from './Login';
 //import useIsMobile from '@/hooks/useIsMobile';
 //import NavbarMobile from '@/components/navbar/NavbarMobile/NavbarMobile';
 
+
 interface NavbarProps {
     search: string;
     onSearchChange: (value: string) => void;
+    loginChange: (state: boolean) => void;
+    currentSidebarState: boolean;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ search, onSearchChange }) => {
+const Navbar: React.FC<NavbarProps> = ({ search, onSearchChange, loginChange, currentSidebarState }) => {
   //const isMobile = useIsMobile();
 
   /*if (isMobile) {
     return <NavbarMobile />;
   }*/
+
+  function handleLogin() : void{
+    loginChange(!currentSidebarState)
+  }
 
   return (
     <nav style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', alignItems: 'center' }}>
@@ -32,7 +39,7 @@ const Navbar: React.FC<NavbarProps> = ({ search, onSearchChange }) => {
 
       {/* Login icon */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <Login />
+        <Login onLogin={handleLogin} />
       </div>
     </nav>
   );
