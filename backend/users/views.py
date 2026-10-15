@@ -4,6 +4,8 @@ from rest_framework import status
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
 from events.models import Event
 from .models import UserProfile
 from .serializers import UserAccountSerializer
@@ -35,13 +37,12 @@ class RegisterView(APIView):
         return Response({"message": "User registered successfully"}, status=status.HTTP_201_CREATED)
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class CurrentUserView(APIView):
     def get(self, request):
         if request.user.is_authenticated:
-            return Response({
-                "username": request.user.username,
-                "email": request.user.email
-            }, status=status.HTTP_200_OK)
+            UserProfile.objects.get_or_create(user=request.user)
+            return Response(UserAccountSerializer(request.user).data, status=status.HTTP_200_OK)
         return Response({"error": "Not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
 
     def put(self, request):
@@ -75,10 +76,8 @@ class CurrentUserView(APIView):
         serializer.save()
         if password_was_changed:
             update_session_auth_hash(request, user)
-        return Response({
-            "username": user.username,
-            "email": user.email,
-        }, status=status.HTTP_200_OK)
+        UserProfile.objects.get_or_create(user=user)
+        return Response(UserAccountSerializer(user).data, status=status.HTTP_200_OK)
 
 
 class LoginView(APIView):

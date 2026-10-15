@@ -3,11 +3,23 @@ from django.contrib.auth.models import User
 from events.models import Event
 
 class UserProfile(models.Model):
-    # Links one-to-one relation to the built-in User model
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    
-    # Many-to-Many relation to let users save multiple events and for events to be saved by multiple users
+
+    display_name = models.CharField(max_length=100, blank=True)
+    profile_picture = models.URLField(max_length=500, blank=True)
+    bio = models.TextField(max_length=500, blank=True)
+    location = models.CharField(max_length=100, blank=True)
+    website = models.URLField(max_length=200, blank=True)
+
     saved_events = models.ManyToManyField(Event, blank=True, related_name='saved_by_users')
+    favorite_genres = models.ManyToManyField(
+        'events.Genre',
+        blank=True,
+        related_name='favorite_by_users',
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Profile for {self.user.username}"
