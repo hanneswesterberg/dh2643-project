@@ -1,5 +1,3 @@
-import React, { useState } from 'react';
-
 export default function SideBar({ isOpen }) {
   // State to manage the open/close state of the sidebar
 
