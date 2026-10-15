@@ -3,7 +3,40 @@ import json
 from django.test import TestCase
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
+from events.models import Genre
 from .models import UserProfile
+
+
+class UserProfileTests(TestCase):
+    def test_profile_stores_social_account_details(self):
+        user = User.objects.create_user(
+            username='profile-user',
+            email='profile@example.com',
+            password='secure-password',
+        )
+        genre = Genre.objects.create(name='Jazz')
+        profile = UserProfile.objects.create(
+            user=user,
+            display_name='Profile User',
+            profile_picture='https://example.com/profile.jpg',
+            bio='A short profile bio.',
+            location='Stockholm',
+            website='https://example.com',
+        )
+        profile.favorite_genres.add(genre)
+
+        profile.refresh_from_db()
+        self.assertEqual(profile.user.username, 'profile-user')
+        self.assertEqual(profile.user.email, 'profile@example.com')
+        self.assertTrue(profile.user.check_password('secure-password'))
+        self.assertEqual(profile.display_name, 'Profile User')
+        self.assertEqual(profile.profile_picture, 'https://example.com/profile.jpg')
+        self.assertEqual(profile.bio, 'A short profile bio.')
+        self.assertEqual(profile.location, 'Stockholm')
+        self.assertEqual(profile.website, 'https://example.com')
+        self.assertEqual(list(profile.favorite_genres.all()), [genre])
+        self.assertIsNotNone(profile.created_at)
+        self.assertIsNotNone(profile.updated_at)
 
 
 class RegisterViewTests(TestCase):
@@ -103,7 +136,15 @@ class CurrentUserAccountTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
             json.loads(response.content),
-            {'username': 'updated-user', 'email': 'updated@example.com'},
+            {
+                'username': 'updated-user',
+                'email': 'updated@example.com',
+                'display_name': '',
+                'profile_picture': '',
+                'bio': '',
+                'location': '',
+                'website': '',
+            },
         )
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password('another-secure-password'))
@@ -128,7 +169,11 @@ class CurrentUserAccountTests(TestCase):
 
         response = self.client.patch(
             '/api/users/me/',
-            {'email': 'updated@example.com'},
+            {
+                'email': 'updated@example.com',
+                'profile_picture': 'https://example.com/new-profile.jpg',
+                'bio': 'A new bio',
+            },
             format='json',
         )
 
@@ -136,6 +181,22 @@ class CurrentUserAccountTests(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.username, 'account-user')
         self.assertEqual(self.user.email, 'updated@example.com')
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertEqual(profile.profile_picture, 'https://example.com/new-profile.jpg')
+        self.assertEqual(profile.bio, 'A new bio')
+
+    def test_update_rejects_invalid_profile_picture_url(self):
+        self.client.force_login(self.user)
+
+        response = self.client.patch(
+            '/api/users/me/',
+            {'profile_picture': 'not-a-url'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, 'old@example.com')
 
     def test_update_rejects_an_existing_username(self):
         User.objects.create_user(username='taken-user', password='secure-password')
