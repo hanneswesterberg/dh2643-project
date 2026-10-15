@@ -4,8 +4,6 @@ from rest_framework import status
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import ensure_csrf_cookie
 from events.models import Event
 from .models import UserProfile
 from .serializers import UserAccountSerializer
@@ -14,20 +12,28 @@ from .serializers import UserAccountSerializer
 class RegisterView(APIView):
     def post(self, request):
         username = request.data.get('username')
+        email = request.data.get('email', '')
         password = request.data.get('password')
 
         if not isinstance(username, str) or not username.strip():
             return Response({"error": "A username is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if email is not None and not isinstance(email, str):
+            return Response({"error": "Email must be a string"}, status=status.HTTP_400_BAD_REQUEST)
         if not isinstance(password, str) or not password.strip():
             return Response({"error": "A password is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         username = username.strip()
+        email = email.strip() if email else ''
         if User.objects.filter(username=username).exists():
             return Response({"error": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             with transaction.atomic():
-                user = User.objects.create_user(**{'username': username, 'password': password})
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=password,
+                )
                 UserProfile.objects.create(user=user)
         except IntegrityError:
             if User.objects.filter(username=username).exists():
@@ -37,12 +43,13 @@ class RegisterView(APIView):
         return Response({"message": "User registered successfully"}, status=status.HTTP_201_CREATED)
 
 
-@method_decorator(ensure_csrf_cookie, name='dispatch')
 class CurrentUserView(APIView):
     def get(self, request):
         if request.user.is_authenticated:
-            UserProfile.objects.get_or_create(user=request.user)
-            return Response(UserAccountSerializer(request.user).data, status=status.HTTP_200_OK)
+            return Response({
+                "username": request.user.username,
+                "email": request.user.email
+            }, status=status.HTTP_200_OK)
         return Response({"error": "Not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
 
     def put(self, request):
@@ -76,21 +83,32 @@ class CurrentUserView(APIView):
         serializer.save()
         if password_was_changed:
             update_session_auth_hash(request, user)
-        UserProfile.objects.get_or_create(user=user)
-        return Response(UserAccountSerializer(user).data, status=status.HTTP_200_OK)
+        return Response({
+            "username": user.username,
+            "email": user.email,
+        }, status=status.HTTP_200_OK)
 
 
 class LoginView(APIView):
     def post(self, request):
         username = request.data.get('username')
+        if username is None:
+            username = request.data.get('email')
         password = request.data.get('password')
 
         if not isinstance(username, str) or not username.strip():
-            return Response({"error": "Username and password are required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Username or email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
         if not isinstance(password, str) or not password:
-            return Response({"error": "Username and password are required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Username or email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = authenticate(request, **{'username': username.strip(), 'password': password})
+        identifier = username.strip()
+        user = authenticate(request, username=identifier, password=password)
+        if user is None:
+            matching_email_users = User.objects.filter(email__iexact=identifier)
+            if matching_email_users.count() == 1:
+                email_user = matching_email_users.first()
+                if email_user is not None:
+                    user = authenticate(request, username=email_user.username, password=password)
         if user is not None:
             login(request, user)
             return Response({"message": "Logged in successfully"}, status=status.HTTP_200_OK)

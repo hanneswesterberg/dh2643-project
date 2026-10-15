@@ -46,12 +46,13 @@ class RegisterViewTests(TestCase):
     def test_register_creates_user_with_hashed_password_and_profile(self):
         response = self.client.post(
             '/api/users/register/',
-            {'username': 'new-user', 'password': 'secure-password'},
+            {'username': 'new-user', 'password': 'secure-password', 'email': 'new-user@example.com'},
             format='json',
         )
 
         self.assertEqual(response.status_code, 201)
         user = User.objects.get(username='new-user')
+        self.assertEqual(user.email, 'new-user@example.com')
         self.assertTrue(user.check_password('secure-password'))
         self.assertTrue(UserProfile.objects.filter(user=user).exists())
 
@@ -91,6 +92,61 @@ class RegisterViewTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(User.objects.filter(username='existing-user').count(), 1)
+
+
+class LoginViewTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='login-user',
+            email='login@example.com',
+            password='secure-password',
+        )
+
+    def test_login_accepts_username(self):
+        response = self.client.post(
+            '/api/users/login/',
+            {'username': 'login-user', 'password': 'secure-password'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.client.get('/api/users/me/').status_code, 200)
+
+    def test_login_accepts_email_as_username_value(self):
+        response = self.client.post(
+            '/api/users/login/',
+            {'username': 'login@example.com', 'password': 'secure-password'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.client.get('/api/users/me/').status_code, 200)
+
+    def test_login_accepts_email_field(self):
+        response = self.client.post(
+            '/api/users/login/',
+            {'email': 'login@example.com', 'password': 'secure-password'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.client.get('/api/users/me/').status_code, 200)
+
+    def test_login_rejects_ambiguous_email(self):
+        User.objects.create_user(
+            username='another-login-user',
+            email='login@example.com',
+            password='secure-password',
+        )
+
+        response = self.client.post(
+            '/api/users/login/',
+            {'email': 'login@example.com', 'password': 'secure-password'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 401)
 
 
 class LogoutViewTests(TestCase):
