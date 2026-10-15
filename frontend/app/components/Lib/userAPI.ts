@@ -1,18 +1,11 @@
-import { Image } from "ol/source";
-import { UserProfileData } from "../userModel";
-import { useEffect, useRef, useState } from 'react';
-import { Event } from "./definition";
 const API = "/api";
 
-export async function logIn(username: string, password: string) {
 
+export async function logIn(username: string, password: string) {
     const response = await fetch(
         `${API}/users/login`,
         {   method: 'POST',
             credentials: 'include',
-            headers: {
-                "Content-Type": "application/json"
-            },
             body: JSON.stringify({
                 username,
                 password
@@ -28,20 +21,18 @@ export async function logIn(username: string, password: string) {
 export async function signUp(
     username: string,
     password: string,
-    email: string
 ) {
     const form = new FormData();
 
     form.append("username", username);
     form.append("password", password);
-    form.append("email", email);
 
     const response = await fetch(
         `${API}/users/register`,
         {
             method: "POST",
-            body: form,
-            credentials: "include"
+            credentials: "include",
+            body: form
         }
     )
     return {
@@ -58,29 +49,70 @@ export async function logOut() {
             credentials: "include"
         }
     )
+    return await response.json()
+}
+
+export async function updatePicture(
+    picture: File | null,
+) {
+   
+    const response = await fetch(
+        `${API}/users/ADDENDPOINT` //TODO: add actual endpoint
+    )
+
     return response.json()
 }
 
-export async function updateProfile(
-    picture: File | null,
-    saved_eventIDs: Array<string> | null
+export async function saveEvent(
+    eventId: number | null
 ) {
-    const form = new FormData()
-
-    if (picture) {
-        form.append("profile_picture", picture)
-    }
-    if (saved_eventIDs) {
-        form.append("saved_events", JSON.stringify(saved_eventIDs))
-    }
-
     const response = await fetch(
-        `${API}/users/update_profile`,
+        `${API}/users/saved-events/${eventId}/`,
         {
             method: "POST",
-            credentials: "include",
-            body: form
+            credentials: "include"
         }
     )
-    return response.json()
+
+    const data = await response.json()
+
+    if (!response.ok) {
+        throw new Error(data.error ?? "Could not remove saved event");
+    }
+
+    return data;
+}
+
+export async function removeSavedEvent(eventId: string) {
+    const response = await fetch(
+        `${API}/users/saved-events/${eventId}/`,
+        {
+            method: "DELETE",
+            credentials: "include"
+        }
+    );
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error ?? "Could not remove saved event");
+    }
+
+    return data;
+}
+
+export async function getSavedEvents() {
+    const response = await fetch(
+        `${API}/saved-events/`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.error ?? "Could not load saved events");
+    }
+
+    return data;
 }
