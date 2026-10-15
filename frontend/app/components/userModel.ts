@@ -8,3 +8,4 @@ export type UserProfileData = {
     location: string;
     website: string;
 };
+
