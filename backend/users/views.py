@@ -4,6 +4,9 @@ from rest_framework import status
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
+from django.middleware.csrf import get_token
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 from events.models import Event
 from .models import UserProfile
 from .serializers import UserAccountSerializer
@@ -155,3 +158,12 @@ class ManageSavedEventView(APIView):
             return Response({"message": "Event removed"}, status=status.HTTP_200_OK)
         except Event.DoesNotExist:
             return Response({"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class CSRFTokenView(APIView):
+    def get(self, request):
+        get_token(request)
+        return Response({"message": "CSRF cookie set"}, status=status.HTTP_200_OK)
+
+    

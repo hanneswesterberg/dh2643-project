@@ -2,6 +2,20 @@ import { UserProfileData } from "../userModel";
 
 const API = "/api/users";
 
+function getCookie(name: string): string | null {
+    if (typeof document === "undefined") return null;
+    const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+    return match ? decodeURIComponent(match[2]) : null;
+}
+
+async function getCSRFHeader(): Promise<Record<string, string>> {
+    let csrfToken = getCookie("csrftoken");
+    if (!csrfToken) {
+        await fetch(`${API}/csrf/`, { credentials: "include" });
+        csrfToken = getCookie("csrftoken");
+    }
+    return csrfToken ? { "X-CSRFToken": csrfToken } : {};
+}
 
 export async function logIn(username: string, password: string) {
     const response = await fetch(
@@ -9,6 +23,10 @@ export async function logIn(username: string, password: string) {
         {   
             method: 'POST',
             credentials: 'include',
+            headers: {
+                ...(await getCSRFHeader()),
+                "Content-Type": "application/json",
+            }, 
             body: JSON.stringify({
                 username,
                 password
@@ -35,6 +53,7 @@ export async function signUp(
         {
             method: "POST",
             credentials: "include",
+            headers: await getCSRFHeader(),
             body: form
         }
     )
@@ -49,7 +68,8 @@ export async function logOut() {
         `${API}/logout/`,
         {
             method: "POST",
-            credentials: "include"
+            credentials: "include",
+            headers: await getCSRFHeader(),
         }
     )
     return await response.json()
@@ -60,7 +80,8 @@ export async function removeSavedEvent(eventId: string) {
         `${API}/saved-events/${eventId}/`,
         {
             method: "DELETE",
-            credentials: "include"
+            credentials: "include",
+            headers: await getCSRFHeader(),
         }
     );
     const data = await response.json();
@@ -93,7 +114,8 @@ export async function loadProfile() {
     const response = await fetch(
         `${API}/me/`,
         {
-            credentials: "include" 
+            method: "GET",
+            credentials: "include",
         }
     );
 
@@ -111,7 +133,8 @@ export async function saveEvent(
         `${API}/saved-events/${eventId}/`,
         {
             method: "POST",
-            credentials: "include"
+            credentials: "include",
+            headers: await getCSRFHeader(),
         }
     )
 
@@ -126,9 +149,8 @@ export async function saveEvent(
 
 export async function updateProfile(
     email: string,
-    picture: string,
-    bio: string,
-    CSRF: string
+    picture: string,  // should be type File?
+    bio: string
 ) {
     const form = new FormData();
 
@@ -141,14 +163,11 @@ export async function updateProfile(
         {
             method: "PATCH",
             credentials: "include",
-            headers:
-            {
-                "Content-Type": "application/json",
-                "X-CSRFToken": CSRF,
-            },
+            headers: await getCSRFHeader(), 
             body: form
         }
     );
+    
     const data = await response.json();
     if (!response.ok) {
         const message = Object.values(data).flat().join(" ");
