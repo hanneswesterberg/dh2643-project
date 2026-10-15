@@ -2,8 +2,9 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { UserProfileData } from "./userModel";
+import { loadProfile, updateProfile} from "./Lib/userAPI"
 
-function getCsrfToken() {
+function getCsrfToken() : string {
     return document.cookie
         .split("; ")
         .find((cookie) => cookie.startsWith("csrftoken="))
@@ -18,18 +19,15 @@ export default function UserProfile() {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
-        async function loadProfile() {
+        async function load() {
             try {
-                const response = await fetch("/api/users/me/", { credentials: "include" });
-                if (!response.ok) {
-                    throw new Error(response.status === 401 ? "Sign in to view your profile." : "Could not load your profile.");
-                }
-                setProfile(await response.json() as UserProfileData);
+                const response = await loadProfile()
+                setProfile(response);
             } catch (loadError) {
                 setError(loadError instanceof Error ? loadError.message : "Could not load your profile.");
             }
         }
-        void loadProfile();
+        void load();
     }, []);
 
     async function saveProfile(event: FormEvent<HTMLFormElement>) {
@@ -40,27 +38,12 @@ export default function UserProfile() {
         setError("");
         setNotice("");
         try {
-            const response = await fetch("/api/users/me/", {
-                method: "PATCH",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": decodeURIComponent(getCsrfToken()),
-                },
-                body: JSON.stringify({
-                    email: profile.email,
-                    display_name: profile.display_name,
-                    profile_picture: profile.profile_picture,
-                    bio: profile.bio,
-                    location: profile.location,
-                    website: profile.website,
-                }),
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                const message = Object.values(data).flat().join(" ");
-                throw new Error(message || "Could not save your profile.");
-            }
+            const data = await updateProfile(
+                profile.email,
+                profile.profile_picture,
+                profile.bio,
+                decodeURIComponent(getCsrfToken())
+            )
             setProfile(data as UserProfileData);
             setNotice("Profile updated.");
         } catch (saveError) {
@@ -100,14 +83,6 @@ export default function UserProfile() {
                     />
                 </label>
                 <label className="block">
-                    Display name
-                    <input
-                        value={profile.display_name}
-                        onChange={(event) => updateField("display_name", event.target.value)}
-                        className="mt-1 block w-full rounded border p-2"
-                    />
-                </label>
-                <label className="block">
                     Profile picture URL
                     <input
                         type="url"
@@ -122,23 +97,6 @@ export default function UserProfile() {
                         value={profile.bio}
                         onChange={(event) => updateField("bio", event.target.value)}
                         maxLength={500}
-                        className="mt-1 block w-full rounded border p-2"
-                    />
-                </label>
-                <label className="block">
-                    Location
-                    <input
-                        value={profile.location}
-                        onChange={(event) => updateField("location", event.target.value)}
-                        className="mt-1 block w-full rounded border p-2"
-                    />
-                </label>
-                <label className="block">
-                    Website
-                    <input
-                        type="url"
-                        value={profile.website}
-                        onChange={(event) => updateField("website", event.target.value)}
                         className="mt-1 block w-full rounded border p-2"
                     />
                 </label>
