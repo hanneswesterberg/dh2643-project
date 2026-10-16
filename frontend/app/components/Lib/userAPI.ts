@@ -149,13 +149,15 @@ export async function saveEvent(
 
 export async function updateProfile(
     email: string,
-    picture: string,  // should be type File?
+    picture: File | null,
     bio: string
 ) {
     const form = new FormData();
 
     form.append("email", email);
-    form.append("profile_picture", picture);
+    if (picture) {
+        form.append("profile_picture", picture);
+    }
     form.append("bio", bio);
 
     const response = await fetch(
