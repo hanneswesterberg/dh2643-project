@@ -1,8 +1,15 @@
 import json
+from io import BytesIO
+import tempfile
+from pathlib import Path
+from urllib.parse import urlsplit
 
 from django.test import TestCase
+from django.test import override_settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
+from PIL import Image
 from events.models import Genre
 from .models import UserProfile
 
@@ -170,6 +177,11 @@ class LogoutViewTests(TestCase):
 class CurrentUserAccountTests(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.media_directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.media_directory.cleanup)
+        media_settings = override_settings(MEDIA_ROOT=self.media_directory.name)
+        media_settings.enable()
+        self.addCleanup(media_settings.disable)
         self.user = User.objects.create_user(
             username='account-user',
             email='old@example.com',
@@ -241,6 +253,41 @@ class CurrentUserAccountTests(TestCase):
         self.assertEqual(profile.profile_picture, 'https://example.com/new-profile.jpg')
         self.assertEqual(profile.bio, 'A new bio')
 
+    def test_bio_preserves_allowed_formatting_and_removes_unsafe_markup(self):
+        self.client.force_login(self.user)
+
+        response = self.client.patch(
+            '/api/users/me/',
+            {'bio': '<b onclick="alert(1)">Bold</b><i>Italic</i><u>Underlined</u><script>alert(2)</script>'},
+            format='json',
+        )
+
+        expected_bio = '<b>Bold</b><i>Italic</i><u>Underlined</u>'
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.content)['bio'], expected_bio)
+        self.assertEqual(UserProfile.objects.get(user=self.user).bio, expected_bio)
+
+    def test_bio_character_limit_counts_text_not_formatting_markup(self):
+        self.client.force_login(self.user)
+        bio = f'<b>{"x" * 500}</b>'
+
+        response = self.client.patch(
+            '/api/users/me/',
+            {'bio': bio},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.content)['bio'], bio)
+
+        response = self.client.patch(
+            '/api/users/me/',
+            {'bio': f'<b>{"x" * 501}</b>'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+
     def test_update_rejects_invalid_profile_picture_url(self):
         self.client.force_login(self.user)
 
@@ -253,6 +300,76 @@ class CurrentUserAccountTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.user.refresh_from_db()
         self.assertEqual(self.user.email, 'old@example.com')
+
+    def test_profile_picture_upload_accepts_png_and_jpeg_and_persists_file(self):
+        self.client.force_login(self.user)
+
+        for image_format, extension, content_type in (
+            ('PNG', 'png', 'image/png'),
+            ('JPEG', 'jpg', 'image/jpeg'),
+        ):
+            image_bytes = BytesIO()
+            Image.new('RGB', (1, 1), color='red').save(image_bytes, format=image_format)
+            upload = SimpleUploadedFile(
+                f'avatar.{extension}',
+                image_bytes.getvalue(),
+                content_type=content_type,
+            )
+
+            response = self.client.patch(
+                '/api/users/me/',
+                {'profile_picture': upload},
+                format='multipart',
+            )
+
+            self.assertEqual(response.status_code, 200)
+            self.user.refresh_from_db()
+            profile = UserProfile.objects.get(user=self.user)
+            self.assertEqual(
+                Path(self.media_directory.name, profile.profile_picture_image.name).read_bytes(),
+                image_bytes.getvalue(),
+            )
+            picture_url = json.loads(response.content)['profile_picture']
+            self.assertIn('/media/profile_pictures/', picture_url)
+            self.assertEqual(urlsplit(picture_url).path, profile.profile_picture_image.url)
+
+    def test_profile_picture_upload_rejects_files_over_2mb(self):
+        self.client.force_login(self.user)
+        upload = SimpleUploadedFile(
+            'too-large.png',
+            b'x' * (2 * 1024 * 1024 + 1),
+            content_type='image/png',
+        )
+
+        response = self.client.patch(
+            '/api/users/me/',
+            {'profile_picture': upload},
+            format='multipart',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('2 MB or smaller', response.content.decode())
+        self.assertFalse(UserProfile.objects.filter(user=self.user).exists())
+
+    def test_profile_picture_upload_rejects_non_png_and_non_jpeg_images(self):
+        self.client.force_login(self.user)
+        image_bytes = BytesIO()
+        Image.new('RGB', (1, 1), color='red').save(image_bytes, format='GIF')
+        upload = SimpleUploadedFile(
+            'avatar.gif',
+            image_bytes.getvalue(),
+            content_type='image/gif',
+        )
+
+        response = self.client.patch(
+            '/api/users/me/',
+            {'profile_picture': upload},
+            format='multipart',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('PNG or JPEG', response.content.decode())
+        self.assertFalse(UserProfile.objects.filter(user=self.user).exists())
 
     def test_update_rejects_an_existing_username(self):
         User.objects.create_user(username='taken-user', password='secure-password')

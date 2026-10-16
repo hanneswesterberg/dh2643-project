@@ -1,6 +1,7 @@
 import { UserProfileData } from "../userModel";
 
 const API = "/api/users";
+const EVENTS_API = "/api/events";
 
 export type AuthUser = {
     username: string;
@@ -174,13 +175,15 @@ export async function saveEvent(
 
 export async function updateProfile(
     email: string,
-    picture: string,  // should be type File?
+    picture: File | null,
     bio: string
 ) {
     const form = new FormData();
 
     form.append("email", email);
-    form.append("profile_picture", picture);
+    if (picture) {
+        form.append("profile_picture", picture);
+    }
     form.append("bio", bio);
 
     const response = await fetch(
@@ -199,4 +202,20 @@ export async function updateProfile(
         throw new Error(message || "Could not save your profile.");
     }
     return data;
+}
+
+export async function searchGlobal(query: string) {
+    const response = await fetch(
+        `${EVENTS_API}/search?q=${encodeURIComponent(query)}`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Could not fetch search results");
+    }
+
+    return await response.json();
 }

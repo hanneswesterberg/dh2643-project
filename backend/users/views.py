@@ -49,10 +49,11 @@ class RegisterView(APIView):
 class CurrentUserView(APIView):
     def get(self, request):
         if request.user.is_authenticated:
-            return Response({
-                "username": request.user.username,
-                "email": request.user.email
-            }, status=status.HTTP_200_OK)
+            UserProfile.objects.get_or_create(user=request.user)
+            return Response(
+                UserAccountSerializer(request.user).data,
+                status=status.HTTP_200_OK,
+            )
         return Response({"error": "Not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
 
     def put(self, request):
@@ -86,10 +87,8 @@ class CurrentUserView(APIView):
         serializer.save()
         if password_was_changed:
             update_session_auth_hash(request, user)
-        return Response({
-            "username": user.username,
-            "email": user.email,
-        }, status=status.HTTP_200_OK)
+        UserProfile.objects.get_or_create(user=user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class LoginView(APIView):
