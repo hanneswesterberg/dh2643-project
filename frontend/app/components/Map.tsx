@@ -14,7 +14,7 @@ import Overlay from 'ol/Overlay';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 
-import OSM from 'ol/source/OSM';
+import StadiaMaps from 'ol/source/StadiaMaps';
 import VectorSource from 'ol/source/Vector';
 
 import { fromLonLat } from 'ol/proj';
@@ -25,6 +25,7 @@ import Style from 'ol/style/Style';
 import CircleStyle from 'ol/style/Circle';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
+import Text from 'ol/style/Text';
 
 type EventDetails = {
   ticksterId: string;
@@ -42,8 +43,11 @@ type VenueGroup = {
   key: string;
   name: string;
   coordinates: number[];
+  stageNames: string[];
   events: Event[];
 };
+
+const EVENTS_PER_PAGE = 12;
 
 function groupEventsByVenue(events: Event[]): VenueGroup[] {
   const groups = new Map<string, VenueGroup>();
@@ -51,15 +55,26 @@ function groupEventsByVenue(events: Event[]): VenueGroup[] {
   for (const event of events) {
     const name = event.properties.venue_name.trim();
     const coordinates = event.geometry.coordinates;
-    const key = `${name.toLocaleLowerCase()}|${coordinates.join(',')}`;
+    const key = coordinates.join(',');
     const group = groups.get(key);
     if (group) {
       group.events.push(event);
+      if (
+        !group.stageNames.some(
+          (stageName) => stageName.toLocaleLowerCase() === name.toLocaleLowerCase()
+        )
+      ) {
+        group.stageNames.push(name);
+      }
+      if (name.length < group.name.length) {
+        group.name = name;
+      }
     } else {
       groups.set(key, {
         key,
         name,
         coordinates,
+        stageNames: [name],
         events: [event],
       });
     }
@@ -71,6 +86,8 @@ function groupEventsByVenue(events: Event[]): VenueGroup[] {
 export default function ConcertMap() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<OLMap | null>(null);
+  const basemapLayerRef = useRef<TileLayer<StadiaMaps> | null>(null);
+  const popupRef = useRef<Overlay | null>(null);
   const markerSourceRef = useRef<VectorSource<Feature<Point>> | null>(null);
   const markerFeaturesRef = useRef<Feature<Point>[]>([]);
   const eventsRef = useRef<EventFeatureCollection | null>(null);
@@ -82,10 +99,13 @@ export default function ConcertMap() {
   const [selectedEvent, setSelectedEvent] =
     useState<EventFeatureCollection['features'][number] | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<VenueGroup | null>(null);
+  const [selectedStage, setSelectedStage] = useState<string | null>(null);
+  const [venueEventsPage, setVenueEventsPage] = useState(0);
   const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [popupElement, setPopupElement] = useState<HTMLDivElement | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const eventDetails: EventDetails | null = selectedEvent
     ? {
@@ -143,17 +163,30 @@ export default function ConcertMap() {
 
     const eventsLayer = new VectorLayer({
       source: markerSource,
-      style: new Style({
-        image: new CircleStyle({
-          radius: 8,
-          fill: new Fill({ color: '#2563eb' }),
-          stroke: new Stroke({ color: 'white', width: 2 }),
+      style: (feature) =>
+        new Style({
+          image: new CircleStyle({
+            radius: 11,
+            fill: new Fill({ color: 'rgb(255, 132, 0)' }),
+            stroke: new Stroke({ color: 'white', width: 2 }),
+          }),
+          text: new Text({
+            text: String(feature.get('eventCount')),
+            font: 'bold 11px Arial, sans-serif',
+            fill: new Fill({ color: 'white' }),
+            textAlign: 'center',
+            textBaseline: 'middle',
+          }),
         }),
-      }),
     });
 
     const overlayElement = document.createElement('div');
     setPopupElement(overlayElement);
+
+    const basemapLayer = new TileLayer({
+      source: new StadiaMaps({ layer: 'alidade_smooth' }),
+    });
+    basemapLayerRef.current = basemapLayer;
 
     const popup = new Overlay({
       element: overlayElement,
@@ -161,13 +194,12 @@ export default function ConcertMap() {
       offset: [0, -18],
       stopEvent: true,
     });
+    popupRef.current = popup;
 
     const map = new OLMap({
       target: mapRef.current,
       layers: [
-        new TileLayer({
-          source: new OSM(),
-        }),
+        basemapLayer,
         eventsLayer,
       ],
       overlays: [popup],
@@ -206,6 +238,7 @@ export default function ConcertMap() {
         selectedVenueRef.current = null;
         setSelectedEvent(null);
         setSelectedVenue(null);
+        setSelectedStage(null);
         return;
       }
 
@@ -215,16 +248,23 @@ export default function ConcertMap() {
         selectedVenueRef.current = null;
         setSelectedEvent(null);
         setSelectedVenue(null);
+        setSelectedStage(null);
         return;
       }
 
       selectedVenueRef.current = venue;
       setSelectedVenue(venue);
+      setSelectedStage(null);
+      setVenueEventsPage(0);
       if (venue.events.length === 1) {
+        popup.setPositioning('bottom-center');
+        popup.setOffset([0, -18]);
         const [event] = venue.events;
         selectedEventRef.current = event;
         setSelectedEvent(event);
       } else {
+        popup.setPositioning('center-center');
+        popup.setOffset([0, 0]);
         selectedEventRef.current = null;
         setSelectedEvent(null);
       }
@@ -242,12 +282,22 @@ export default function ConcertMap() {
       map.un('singleclick', handleMapClick);
       target.removeEventListener('pointerleave', handlePointerLeave);
       mapInstanceRef.current = null;
+      basemapLayerRef.current = null;
+      popupRef.current = null;
       markerSourceRef.current = null;
       markerFeaturesRef.current = [];
       setPopupElement(null);
       map.setTarget(undefined);
     };
   }, []);
+
+  useEffect(() => {
+    basemapLayerRef.current?.setSource(
+      new StadiaMaps({
+        layer: isDarkMode ? 'alidade_smooth_dark' : 'alidade_smooth',
+      })
+    );
+  }, [isDarkMode]);
 
   useEffect(() => {
     if (!events) return;
@@ -259,6 +309,7 @@ export default function ConcertMap() {
         new Feature({
           geometry: new Point(fromLonLat(venue.coordinates)),
           venueKey: venue.key,
+          eventCount: venue.events.length,
         })
     );
     markerFeaturesRef.current = markerFeatures;
@@ -271,8 +322,62 @@ export default function ConcertMap() {
   }, [events]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
+    <div
+      data-theme={isDarkMode ? 'dark' : 'light'}
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100vh',
+        colorScheme: isDarkMode ? 'dark' : 'light',
+      }}
+    >
       <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+      <button
+        type="button"
+        role="switch"
+        aria-checked={isDarkMode}
+        aria-label="Dark mode"
+        title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+        onClick={() => setIsDarkMode((enabled) => !enabled)}
+        style={{
+          position: 'absolute',
+          top: '16px',
+          right: '16px',
+          zIndex: 1000,
+        }}
+        className="theme-toggle"
+        data-checked={isDarkMode}
+      >
+        <span className="theme-toggle__thumb" aria-hidden="true">
+          {isDarkMode ? (
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+              <path
+                d="M20.2 15.4A8.5 8.5 0 0 1 8.6 3.8 8.5 8.5 0 1 0 20.2 15.4Z"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+              <circle
+                cx="12"
+                cy="12"
+                r="4"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              />
+              <path
+                d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+          )}
+        </span>
+      </button>
       {(loading ||
         error ||
         (events !== null && events.features.length === 0)) && (
@@ -285,9 +390,9 @@ export default function ConcertMap() {
             zIndex: 1000,
             padding: '10px 14px',
             borderRadius: '8px',
-            background: 'white',
+            background: isDarkMode ? '#1f2937' : 'white',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-            color: error ? '#b91c1c' : '#171717',
+            color: error ? '#b91c1c' : isDarkMode ? '#f9fafb' : '#171717',
           }}
         >
           {error ??
@@ -297,20 +402,32 @@ export default function ConcertMap() {
       {popupElement &&
         createPortal(
           <div
-        style={{
-          minWidth: '220px',
-          maxWidth: '280px',
-          maxHeight: 'min(70vh, 480px)',
-          overflowY: 'auto',
-          padding: '12px 14px',
-          borderRadius: '8px',
-          background: 'white',
-          boxShadow: '0 2px 12px rgba(0, 0, 0, 0.25)',
-          color: '#171717',
-          fontSize: '14px',
-          pointerEvents: 'auto',
-        }}
-      >
+            style={
+              selectedVenue && !selectedEvent
+                ? {
+                    position: 'relative',
+                    width: 'min(360px, calc(100vw - 24px))',
+                    height: 'min(360px, calc(100vw - 24px))',
+                    overflow: 'visible',
+                    color: isDarkMode ? '#f9fafb' : '#171717',
+                    fontSize: '14px',
+                    pointerEvents: 'auto',
+                  }
+                : {
+                    minWidth: '220px',
+                    maxWidth: '320px',
+                    maxHeight: 'min(70vh, 480px)',
+                    overflowY: 'auto',
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    background: isDarkMode ? '#1f2937' : 'white',
+                    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.25)',
+                    color: isDarkMode ? '#f9fafb' : '#171717',
+                    fontSize: '14px',
+                    pointerEvents: 'auto',
+                  }
+            }
+          >
         {selectedEvent && eventDetails ? (
           <>
             {selectedVenue && selectedVenue.events.length > 1 && (
@@ -319,13 +436,15 @@ export default function ConcertMap() {
                 onClick={() => {
                   selectedEventRef.current = null;
                   setSelectedEvent(null);
+                  popupRef.current?.setPositioning('center-center');
+                  popupRef.current?.setOffset([0, 0]);
                 }}
                 style={{
                   marginBottom: '8px',
                   padding: 0,
                   border: 0,
                   background: 'none',
-                  color: '#1d4ed8',
+                  color: isDarkMode ? '#93c5fd' : '#1d4ed8',
                   cursor: 'pointer',
                   font: 'inherit',
                   textDecoration: 'underline',
@@ -351,7 +470,7 @@ export default function ConcertMap() {
                           padding: 0,
                           border: 0,
                           background: 'none',
-                          color: '#1d4ed8',
+                          color: isDarkMode ? '#93c5fd' : '#1d4ed8',
                           cursor: 'pointer',
                           font: 'inherit',
                           textDecoration: 'underline',
@@ -378,6 +497,7 @@ export default function ConcertMap() {
                   href={eventDetails.ticketUrl}
                   target="_blank"
                   rel="noreferrer"
+                  style={{ color: isDarkMode ? '#93c5fd' : '#1d4ed8' }}
                 >
                   Tickets
                 </a>
@@ -389,6 +509,7 @@ export default function ConcertMap() {
                   href={eventDetails.imageUrl}
                   target="_blank"
                   rel="noreferrer"
+                  style={{ color: isDarkMode ? '#93c5fd' : '#1d4ed8' }}
                 >
                   Event image
                 </a>
@@ -397,32 +518,244 @@ export default function ConcertMap() {
           </>
         ) : selectedVenue ? (
           <>
-            <strong>{selectedVenue.name}</strong>
-            <div style={{ marginTop: '8px', display: 'grid', gap: '6px' }}>
-              {selectedVenue.events.map((event) => (
-                <button
-                  key={event.id}
-                  type="button"
-                  onClick={() => {
-                    selectedEventRef.current = event;
-                    setSelectedEvent(event);
-                  }}
-                  style={{
-                    padding: '8px',
-                    border: '1px solid #d4d4d4',
-                    borderRadius: '6px',
-                    background: 'white',
-                    color: '#171717',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    font: 'inherit',
-                  }}
-                >
-                  <strong>{event.properties.name}</strong>
-                  <div>{new Date(event.properties.start).toLocaleString()}</div>
-                </button>
-              ))}
-            </div>
+            {(() => {
+              const stageEvents = selectedStage
+                ? selectedVenue.events.filter(
+                    (event) =>
+                      event.properties.venue_name.trim().toLocaleLowerCase() ===
+                      selectedStage.toLocaleLowerCase()
+                  )
+                : selectedVenue.events;
+              const pageCount = Math.ceil(
+                stageEvents.length / EVENTS_PER_PAGE
+              );
+              const pageEvents = stageEvents.slice(
+                venueEventsPage * EVENTS_PER_PAGE,
+                (venueEventsPage + 1) * EVENTS_PER_PAGE
+              );
+
+              return (
+                <>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: selectedVenue.stageNames.length > 1 ? '44px' : 0,
+                      right: 0,
+                      bottom: 0,
+                      left: 0,
+                      width: '100%',
+                      height:
+                        selectedVenue.stageNames.length > 1
+                          ? 'calc(100% - 44px)'
+                          : '100%',
+                    }}
+                  >
+                    {pageEvents.map((event, index) => {
+                      const angle =
+                        (index / pageEvents.length) * Math.PI * 2 -
+                        Math.PI / 2;
+                      const radius = 30;
+                      const x = 50 + Math.cos(angle) * radius;
+                      const y = 50 + Math.sin(angle) * radius;
+                      const artists = event.properties.artists
+                        .slice(0, 2)
+                        .map((artist) => artist.name);
+
+                      return (
+                        <button
+                          key={event.id}
+                          type="button"
+                          aria-label={`View ${event.properties.name}, ${new Date(
+                            event.properties.start
+                          ).toLocaleString()}`}
+                          title={event.properties.name}
+                          onClick={() => {
+                            selectedEventRef.current = event;
+                            setSelectedEvent(event);
+                          }}
+                          style={{
+                            position: 'absolute',
+                            top: `${y}%`,
+                            left: `${x}%`,
+                            display: 'grid',
+                            width: '68px',
+                            height: '68px',
+                            placeItems: 'center',
+                            transform: 'translate(-50%, -50%)',
+                            padding: '6px',
+                            border: '3px solid white',
+                            borderRadius: '50%',
+                            background: '#2563eb',
+                            boxShadow: '0 3px 10px rgba(0, 0, 0, 0.35)',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontSize: '10px',
+                            fontWeight: 600,
+                            lineHeight: 1.15,
+                            textAlign: 'center',
+                          }}
+                        >
+                          {artists.length > 0
+                            ? artists.join(' & ')
+                            : 'Event'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedVenue.stageNames.length > 1 && (
+                    <label
+                      style={{
+                        position: 'absolute',
+                        top: '4px',
+                        left: '50%',
+                        zIndex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        width: 'min(320px, calc(100% - 16px))',
+                        transform: 'translateX(-50%)',
+                        padding: '5px 8px',
+                        borderRadius: '8px',
+                        background: isDarkMode ? '#1f2937' : 'white',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+                      }}
+                    >
+                      <span>Stage</span>
+                      <select
+                        aria-label={`Choose stage at ${selectedVenue.name}`}
+                        value={selectedStage ?? ''}
+                        onChange={(change) => {
+                          setSelectedStage(change.target.value || null);
+                          setVenueEventsPage(0);
+                        }}
+                        style={{
+                          minWidth: 0,
+                          flex: 1,
+                          background: isDarkMode ? '#111827' : 'white',
+                          color: isDarkMode ? '#f9fafb' : '#171717',
+                        }}
+                      >
+                        <option value="">All stages</option>
+                        {selectedVenue.stageNames.map((stageName) => (
+                          <option key={stageName} value={stageName}>
+                            {stageName}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <button
+                    type="button"
+                    aria-label={selectedVenue.name}
+                    title={selectedVenue.name}
+                    onClick={() => {
+                      popupRef.current?.setPosition(undefined);
+                      selectedEventRef.current = null;
+                      selectedVenueRef.current = null;
+                      setSelectedEvent(null);
+                      setSelectedVenue(null);
+                      setSelectedStage(null);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      display: 'grid',
+                      width: '76px',
+                      height: '76px',
+                      placeItems: 'center',
+                      transform: 'translate(-50%, -50%)',
+                      padding: '8px',
+                      border: '4px solid white',
+                      borderRadius: '50%',
+                      background: '#1d4ed8',
+                      boxShadow: '0 3px 12px rgba(0, 0, 0, 0.4)',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      lineHeight: 1.1,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {selectedVenue.name}
+                  </button>
+                  {pageCount > 1 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '10px',
+                        padding: '3px 8px',
+                        borderRadius: '20px',
+                        background: isDarkMode ? '#1f2937' : 'white',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        aria-label="Previous events"
+                        disabled={venueEventsPage === 0}
+                        onClick={() =>
+                          setVenueEventsPage((page) => Math.max(0, page - 1))
+                        }
+                        style={{
+                          border: 0,
+                          borderRadius: '50%',
+                          background: venueEventsPage === 0 ? '#e5e7eb' : '#2563eb',
+                          color: venueEventsPage === 0 ? '#6b7280' : 'white',
+                          cursor: venueEventsPage === 0 ? 'default' : 'pointer',
+                          fontSize: '20px',
+                          width: '32px',
+                          height: '32px',
+                        }}
+                      >
+                        ←
+                      </button>
+                      <span aria-live="polite" style={{ fontSize: '12px' }}>
+                        {venueEventsPage + 1} / {pageCount}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Next events"
+                        disabled={venueEventsPage === pageCount - 1}
+                        onClick={() =>
+                          setVenueEventsPage((page) =>
+                            Math.min(pageCount - 1, page + 1)
+                          )
+                        }
+                        style={{
+                          border: 0,
+                          borderRadius: '50%',
+                          background:
+                            venueEventsPage === pageCount - 1
+                              ? '#e5e7eb'
+                              : '#2563eb',
+                          color:
+                            venueEventsPage === pageCount - 1
+                              ? '#6b7280'
+                              : 'white',
+                          cursor:
+                            venueEventsPage === pageCount - 1
+                              ? 'default'
+                              : 'pointer',
+                          fontSize: '20px',
+                          width: '32px',
+                          height: '32px',
+                        }}
+                      >
+                        →
+                      </button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </>
         ) : (
           <span>Select a venue marker to view its events.</span>
@@ -455,8 +788,8 @@ export default function ConcertMap() {
               overflow: 'auto',
               padding: '32px',
               borderRadius: '12px',
-              background: 'white',
-              color: '#171717',
+              background: isDarkMode ? '#1f2937' : 'white',
+              color: isDarkMode ? '#f9fafb' : '#171717',
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
             }}
           >
