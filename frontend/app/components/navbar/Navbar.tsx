@@ -35,7 +35,7 @@ const Navbar: React.FC<NavbarProps> = ({ search, onSearchChange, loginChange, cu
       </div>
 
       {/* Search Bar */}
-      <SearchBar value={search} onChange={onSearchChange} />
+      <SearchBar />
 
       {/* Login icon */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
