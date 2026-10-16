@@ -1,4 +1,6 @@
-//import React, { useState } from 'react';
+import UserProfile from "../Profile";
+
+
 export default function SideBar({ isOpen }) {
   // State to manage the open/close state of the sidebar
 
@@ -15,20 +17,7 @@ export default function SideBar({ isOpen }) {
           }`}>
         {/* Sidebar content */}
         <div className="flex flex-col items-center">
-          <div className="mt-4">
-            <a href="#"
-              className="text-white 
-                          hover:text-gray-300">
-              Home
-            </a>
-          </div>
-          <div className="mt-4">
-            <a href="#"
-              className="text-white 
-                          hover:text-gray-300">
-              About
-            </a>
-          </div>
+          <UserProfile></UserProfile>
           {/* Add more sidebar items here */}
         </div>
       </div>

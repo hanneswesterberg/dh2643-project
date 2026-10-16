@@ -50,12 +50,21 @@ export default function UserProfile() {
     }
 
     if (!profile) {
-        return <p role="status">{error || "Loading profile..."}</p>;
+        return error ? 
+        ( <p role="alert">{error}</p>) : 
+        (
+            <div role="status" className="flex items-center gap-3 p-6">
+                <span
+                    aria-hidden="true"
+                    className="loadingSpin"
+                />
+            </div>
+        );
     }
 
     return (
-        <section className="mx-auto max-w-xl space-y-5 p-6">
-            <h1 className="text-2xl font-semibold">Your profile</h1>
+        <section className="w-full min-w-0 max-w-full space-y-4 p-3">
+            <h1 className="text-xl font-semibold">Your profile</h1>
             {profile.profile_picture && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={profile.profile_picture} alt="Profile picture" className="img_round" />
