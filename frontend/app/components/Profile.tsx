@@ -1,5 +1,5 @@
 'use client'
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { UserProfileData } from "./userModel";
 import { loadProfile, updateProfile} from "./Lib/userAPI"
@@ -10,6 +10,9 @@ export default function UserProfile() {
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
     const [saving, setSaving] = useState(false);
+    const [pictureFile, setPictureFile] = useState<File | null>(null);
+    const [bioLength, setBioLength] = useState(0);
+    const bioEditor = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         async function load() {
@@ -23,6 +26,13 @@ export default function UserProfile() {
         void load();
     }, []);
 
+    useEffect(() => {
+        if (bioEditor.current && bioEditor.current.innerHTML !== profile?.bio) {
+            bioEditor.current.innerHTML = profile?.bio ?? "";
+            setBioLength(bioEditor.current.innerText.length);
+        }
+    }, [profile?.bio]);
+
     async function saveProfile(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         if (!profile) return;
@@ -33,10 +43,11 @@ export default function UserProfile() {
         try {
             const data = await updateProfile(
                 profile.email,
-                profile.profile_picture,
+                pictureFile,
                 profile.bio,
             )
             setProfile(data as UserProfileData);
+            setPictureFile(null);
             setNotice("Profile updated.");
         } catch (saveError) {
             setError(saveError instanceof Error ? saveError.message : "Could not save your profile.");
@@ -47,6 +58,20 @@ export default function UserProfile() {
 
     function updateField(field: keyof UserProfileData, value: string) {
         setProfile((current) => current ? { ...current, [field]: value } : current);
+    }
+
+    function updateBioFromEditor() {
+        const editor = bioEditor.current;
+        if (editor) {
+            updateField("bio", editor.innerHTML);
+            setBioLength(editor.innerText.length);
+        }
+    }
+
+    function formatBio(command: "bold" | "italic" | "underline") {
+        bioEditor.current?.focus();
+        document.execCommand(command, false);
+        updateBioFromEditor();
     }
 
     if (!profile) {
@@ -75,23 +100,80 @@ export default function UserProfile() {
                     />
                 </label>
                 <label className="block">
-                    Profile picture URL
+                    Profile picture (PNG or JPEG, max 2 MB)
                     <input
-                        type="url"
-                        value={profile.profile_picture}
-                        onChange={(event) => updateField("profile_picture", event.target.value)}
+                        type="file"
+                        accept="image/png,image/jpeg,.png,.jpg,.jpeg"
+                        onChange={(event) => {
+                            const file = event.currentTarget.files?.[0] ?? null;
+                            if (file && file.size > 2 * 1024 * 1024) {
+                                setPictureFile(null);
+                                event.currentTarget.value = "";
+                                setError("Profile pictures must be 2 MB or smaller.");
+                                return;
+                            }
+                            if (
+                                file &&
+                                !["image/png", "image/jpeg"].includes(file.type) &&
+                                !/\.(png|jpe?g)$/i.test(file.name)
+                            ) {
+                                setPictureFile(null);
+                                event.currentTarget.value = "";
+                                setError("Choose a PNG or JPEG image.");
+                                return;
+                            }
+                            setError("");
+                            setPictureFile(file);
+                        }}
                         className="mt-1 block w-full rounded border p-2"
                     />
+                    {pictureFile && <span className="mt-1 block">{pictureFile.name}</span>}
                 </label>
-                <label className="block">
+                <div className="block">
                     Bio
-                    <textarea
-                        value={profile.bio}
-                        onChange={(event) => updateField("bio", event.target.value)}
-                        maxLength={500}
-                        className="mt-1 block w-full rounded border p-2"
+                    <div role="toolbar" aria-label="Bio formatting" className="mt-1 flex gap-2">
+                        <button
+                            type="button"
+                            aria-label="Bold"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => formatBio("bold")}
+                            className="rounded border px-2 py-1 font-bold"
+                        >
+                            B
+                        </button>
+                        <button
+                            type="button"
+                            aria-label="Italic"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => formatBio("italic")}
+                            className="rounded border px-2 py-1 italic"
+                        >
+                            I
+                        </button>
+                        <button
+                            type="button"
+                            aria-label="Underline"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => formatBio("underline")}
+                            className="rounded border px-2 py-1 underline"
+                        >
+                            U
+                        </button>
+                    </div>
+                    <div
+                        ref={bioEditor}
+                        role="textbox"
+                        aria-label="Bio"
+                        aria-multiline="true"
+                        contentEditable
+                        suppressContentEditableWarning
+                        onInput={updateBioFromEditor}
+                        className="mt-1 min-h-28 w-full rounded border p-2"
                     />
-                </label>
+                    <p className="mt-1 text-sm text-gray-600">
+                        {bioLength}/500 characters
+                    </p>
+                </div>
 
                 {error && <p role="alert">{error}</p>}
                 {notice && <p role="status">{notice}</p>}
