@@ -1,0 +1,143 @@
+import type { EventFeatureCollection } from './definition';
+
+export const mockEvents: EventFeatureCollection = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      id: 900001,
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [18.0686, 59.3293],
+      },
+      properties: {
+        tickster_id: 'mock-stockholm-001',
+        name: 'Summer Sounds at Nalen',
+        start: '2026-07-18T19:00:00+02:00',
+        end: '2026-07-18T22:30:00+02:00',
+        ticket_url: '',
+        image_url: '',
+        venue_name: 'Nalen',
+        artists: [
+          { id: 9001, name: 'The Northern Lights' },
+          { id: 9002, name: 'Mira Sol' },
+        ],
+        genre: 'Indie pop',
+      },
+    },
+    {
+      id: 900002,
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [18.0366, 59.3157],
+      },
+      properties: {
+        tickster_id: 'mock-stockholm-002',
+        name: 'Jazz by the Water',
+        start: '2026-07-22T20:00:00+02:00',
+        end: '2026-07-22T23:00:00+02:00',
+        ticket_url: '',
+        image_url: '',
+        venue_name: 'Fasching',
+        artists: [{ id: 9003, name: 'Blue Hour Quartet' }],
+        genre: 'Jazz',
+      },
+    },
+    {
+      id: 900003,
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [18.052, 59.3331],
+      },
+      properties: {
+        tickster_id: 'mock-stockholm-003',
+        name: 'Electric Nights',
+        start: '2026-07-25T21:00:00+02:00',
+        end: '2026-07-26T01:00:00+02:00',
+        ticket_url: '',
+        image_url: '',
+        venue_name: 'Debaser',
+        artists: [{ id: 9004, name: 'Static Bloom' }],
+        genre: 'Electronic',
+      },
+    },
+    {
+      id: 900004,
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [18.0914, 59.3178],
+      },
+      properties: {
+        tickster_id: 'mock-stockholm-004',
+        name: 'Acoustic Garden',
+        start: '2026-08-01T18:30:00+02:00',
+        end: '2026-08-01T21:30:00+02:00',
+        ticket_url: '',
+        image_url: '',
+        venue_name: 'Södra Teatern',
+        artists: [{ id: 9005, name: 'Elias June' }],
+        genre: 'Folk',
+      },
+    },
+    {
+      id: 900005,
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [18.0584, 59.3427],
+      },
+      properties: {
+        tickster_id: 'mock-stockholm-005',
+        name: 'Rock at the Brewery',
+        start: '2026-08-07T19:30:00+02:00',
+        end: '2026-08-07T23:30:00+02:00',
+        ticket_url: '',
+        image_url: '',
+        venue_name: 'Brygghuset',
+        artists: [{ id: 9006, name: 'Midnight Engine' }],
+        genre: 'Rock',
+      },
+    },
+    {
+      id: 900006,
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [18.0333, 59.3151],
+      },
+      properties: {
+        tickster_id: 'mock-debaser-001',
+        name: 'Debaser Sample Night: Static Bloom',
+        start: '2027-04-16T20:00:00+02:00',
+        end: '2027-04-16T23:00:00+02:00',
+        ticket_url: '',
+        image_url: '',
+        venue_name: 'Debaser',
+        artists: [{ id: 9007, name: 'Static Bloom' }],
+        genre: 'Indie rock',
+      },
+    },
+    {
+      id: 900007,
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [18.0337, 59.3151],
+      },
+      properties: {
+        tickster_id: 'mock-debaser-002',
+        name: 'Debaser Sample Night: Echo Arcade',
+        start: '2027-04-17T21:00:00+02:00',
+        end: '2027-04-18T00:30:00+02:00',
+        ticket_url: '',
+        image_url: '',
+        venue_name: 'Debaser',
+        artists: [{ id: 9008, name: 'Echo Arcade' }],
+        genre: 'Electronic',
+      },
+    },
+  ],
+};
