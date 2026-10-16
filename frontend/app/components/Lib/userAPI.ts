@@ -1,6 +1,7 @@
 import { UserProfileData } from "../userModel";
 
 const API = "/api/users";
+const EVENTS_API = "/api/events";
 
 function getCookie(name: string): string | null {
     if (typeof document === "undefined") return null;
@@ -174,4 +175,20 @@ export async function updateProfile(
         throw new Error(message || "Could not save your profile.");
     }
     return data;
+}
+
+export async function searchGlobal(query: string) {
+    const response = await fetch(
+        `${EVENTS_API}/search?q=${encodeURIComponent(query)}`,
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Could not fetch search results");
+    }
+
+    return await response.json();
 }

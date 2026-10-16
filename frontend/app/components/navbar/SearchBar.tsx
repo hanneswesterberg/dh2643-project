@@ -1,40 +1,152 @@
-//import React, { useState, useEffect } from 'react';
 "use client"
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { searchGlobal } from '../Lib/userAPI'; // Adjust path if necessary
 
-interface SearchBarProps {
-  value: string;
-  onChange: (value: string) => void;
-}
+type SearchResult = { id: number; name: string };
+type CategorizedResults = {
+  artists: SearchResult[];
+  genres: SearchResult[];
+  venues: SearchResult[];
+};
 
-function SearchBar({
-  value,
-  onChange,
-}: SearchBarProps) {
+export default function SearchBar() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  const [term, setTerm] = useState(searchParams.get('search') || '');
+  const [results, setResults] = useState<CategorizedResults | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Use the extracted API function dynamically as the user types
+  useEffect(() => {
+    if (term.trim().length < 2) {
+      setResults(null);
+      setIsOpen(false);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      try {
+        const data = await searchGlobal(term);
+        setResults(data);
+        setIsOpen(
+          data.artists.length > 0 || 
+          data.genres.length > 0 || 
+          data.venues.length > 0
+        );
+      } catch (error) {
+        console.error("Search failed:", error);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [term]);
+
+  const handleSelect = (name: string) => {
+    setTerm(name);
+    setIsOpen(false);
+    router.push(`/?search=${encodeURIComponent(name)}`);
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsOpen(false);
+    if (term.trim()) {
+      router.push(`/?search=${encodeURIComponent(term.trim())}`);
+    } else {
+      router.push(`/`);
+    }
+  };
+
   return (
-    <div className="relative w-full max-w-md">
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Search genres, artists or venues..."
-        className="w-full rounded-full border border-gray-300 bg-white px-5 py-3 pr-12 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-      />
-
-      <svg
-        className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"
+    <div ref={wrapperRef} className="relative w-full max-w-md">
+      <form onSubmit={handleFormSubmit}>
+        <input
+          type="text"
+          value={term}
+          onChange={(e) => setTerm(e.target.value)}
+          onFocus={() => { if (results) setIsOpen(true) }}
+          placeholder="Search genres, artists or venues..."
+          className="w-full rounded-full border border-gray-300 bg-white px-5 py-3 pr-12 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-black"
         />
-      </svg>
+        <button type="submit" className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 hover:text-blue-500 transition">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" />
+          </svg>
+        </button>
+      </form>
+
+      {isOpen && results && (
+        <div className="absolute left-0 top-full mt-2 w-full overflow-hidden rounded-xl border border-gray-100 bg-white shadow-xl z-50">
+          
+          {results.artists.length > 0 && (
+            <div className="p-2">
+              <h3 className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Artists</h3>
+              <ul>
+                {results.artists.map((artist) => (
+                  <li key={`artist-${artist.id}`}>
+                    <button 
+                      onClick={() => handleSelect(artist.name)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md transition text-gray-800"
+                    >
+                      {artist.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {results.venues.length > 0 && (
+            <div className="p-2 border-t border-gray-50">
+              <h3 className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Venues</h3>
+              <ul>
+                {results.venues.map((venue) => (
+                  <li key={`venue-${venue.id}`}>
+                    <button 
+                      onClick={() => handleSelect(venue.name)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md transition text-gray-800"
+                    >
+                      {venue.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {results.genres.length > 0 && (
+            <div className="p-2 border-t border-gray-50">
+              <h3 className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Genres</h3>
+              <ul>
+                {results.genres.map((genre) => (
+                  <li key={`genre-${genre.id}`}>
+                    <button 
+                      onClick={() => handleSelect(genre.name)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md transition text-gray-800"
+                    >
+                      {genre.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          
+        </div>
+      )}
     </div>
   );
 }
-export default SearchBar;
