@@ -4,13 +4,6 @@ import { useRouter } from "next/navigation";
 import type { UserProfileData } from "./userModel";
 import { loadProfile, updateProfile} from "./Lib/userAPI"
 
-function getCsrfToken() : string {
-    return document.cookie
-        .split("; ")
-        .find((cookie) => cookie.startsWith("csrftoken="))
-        ?.split("=")[1] ?? "";
-}
-
 export default function UserProfile() {
     const router = useRouter();
     const [profile, setProfile] = useState<UserProfileData | null>(null);
@@ -42,7 +35,6 @@ export default function UserProfile() {
                 profile.email,
                 profile.profile_picture,
                 profile.bio,
-                decodeURIComponent(getCsrfToken())
             )
             setProfile(data as UserProfileData);
             setNotice("Profile updated.");
