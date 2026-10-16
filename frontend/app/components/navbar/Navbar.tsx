@@ -1,9 +1,11 @@
 "use client"
 import React from 'react';
+import { useRouter } from "next/navigation";
 import SearchBar from './SearchBar'; //'@/components/navbar/SearchBar/SearchBar'
 import Logo from './Logo';
 //import NavigationLinks from './NavigationLinks';
 import Login from './Login';
+import { useAuth } from "../Lib/AuthContext";
 //import useIsMobile from '@/hooks/useIsMobile';
 //import NavbarMobile from '@/components/navbar/NavbarMobile/NavbarMobile';
 
@@ -16,14 +18,22 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ search, onSearchChange, loginChange, currentSidebarState }) => {
+  const router = useRouter();
+  const { status, refreshAuth } = useAuth();
   //const isMobile = useIsMobile();
 
   /*if (isMobile) {
     return <NavbarMobile />;
   }*/
 
-  function handleLogin() : void{
-    loginChange(!currentSidebarState)
+  function handleAccountAction(): void {
+    if (status === "authenticated") {
+      loginChange(!currentSidebarState);
+    } else if (status === "unauthenticated") {
+      router.push("/login");
+    } else if (status === "error") {
+      void refreshAuth().catch(() => undefined);
+    }
   }
 
   return (
@@ -39,7 +49,15 @@ const Navbar: React.FC<NavbarProps> = ({ search, onSearchChange, loginChange, cu
 
       {/* Login icon */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <Login onLogin={handleLogin} />
+        <Login
+          onLogin={handleAccountAction}
+          label={
+            status === "loading" ? "Checking..." :
+            status === "authenticated" ? "Profile" :
+            status === "error" ? "Retry" : "Sign In"
+          }
+          disabled={status === "loading"}
+        />
       </div>
     </nav>
   );

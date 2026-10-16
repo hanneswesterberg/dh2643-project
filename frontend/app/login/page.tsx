@@ -3,8 +3,11 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { logIn } from "../components/Lib/userAPI";
+import { useAuth } from "../components/Lib/AuthContext";
 
 export default function Login() {
+    const router = useRouter();
+    const { refreshAuth } = useAuth();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -25,7 +28,8 @@ export default function Login() {
                 );
                 return;
             }
-
+            await refreshAuth();
+            router.replace("/");
         } catch (loginError) {
             setError(loginError instanceof Error ? loginError.message : "Could not log in.");
         } finally {

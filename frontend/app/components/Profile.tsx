@@ -2,14 +2,17 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { UserProfileData } from "./userModel";
-import { loadProfile, updateProfile} from "./Lib/userAPI"
+import { loadProfile, logOut, updateProfile } from "./Lib/userAPI"
+import { useAuth } from "./Lib/AuthContext";
 
 export default function UserProfile() {
     const router = useRouter();
+    const { refreshAuth } = useAuth();
     const [profile, setProfile] = useState<UserProfileData | null>(null);
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
     const [saving, setSaving] = useState(false);
+    const [loggingOut, setLoggingOut] = useState(false);
 
     useEffect(() => {
         async function load() {
@@ -42,6 +45,20 @@ export default function UserProfile() {
             setError(saveError instanceof Error ? saveError.message : "Could not save your profile.");
         } finally {
             setSaving(false);
+        }
+    }
+
+    async function handleLogOut() {
+        setLoggingOut(true);
+        setError("");
+        try {
+            await logOut();
+            await refreshAuth();
+            router.replace("/");
+        } catch (logoutError) {
+            setError(logoutError instanceof Error ? logoutError.message : "Could not log out.");
+        } finally {
+            setLoggingOut(false);
         }
     }
 
@@ -110,6 +127,14 @@ export default function UserProfile() {
             </form>
             <button onClick={() => router.push("/")} className="rounded border px-4 py-2">
                 Go back
+            </button>
+            <button
+                type="button"
+                onClick={handleLogOut}
+                disabled={loggingOut}
+                className="rounded border px-4 py-2"
+            >
+                {loggingOut ? "Signing out..." : "Sign out"}
             </button>
         </section>
     );

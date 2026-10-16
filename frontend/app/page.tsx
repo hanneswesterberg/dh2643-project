@@ -15,8 +15,7 @@ export default function Home() {
         search={search}
         onSearchChange={setSearch}
         loginChange={setSidebarOpen}
-        currentSidebarState={isSidebarOpen}
-        />
+        currentSidebarState={isSidebarOpen}/>
       </header>
       <SideBar isOpen={isSidebarOpen}></SideBar>
       <ConcertMap />

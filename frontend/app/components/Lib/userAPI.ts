@@ -2,6 +2,11 @@ import { UserProfileData } from "../userModel";
 
 const API = "/api/users";
 
+export type AuthUser = {
+    username: string;
+    email: string;
+};
+
 function getCookie(name: string): string | null {
     if (typeof document === "undefined") return null;
     const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
@@ -72,7 +77,27 @@ export async function logOut() {
             headers: await getCSRFHeader(),
         }
     )
-    return await response.json()
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.error ?? "Could not log out.");
+    }
+    return data;
+}
+
+export async function getCurrentUser(): Promise<AuthUser | null> {
+    const response = await fetch(`${API}/me/`, {
+        method: "GET",
+        credentials: "include",
+    });
+
+    if (response.status === 401) {
+        return null;
+    }
+    if (!response.ok) {
+        throw new Error("Could not verify your sign-in status.");
+    }
+
+    return await response.json() as AuthUser;
 }
 
 export async function removeSavedEvent(eventId: string) {
