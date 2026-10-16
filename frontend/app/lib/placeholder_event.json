@@ -1,0 +1,59 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "id": 376,
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    11.9543,
+                    57.7006
+                ]
+            },
+            "properties": {
+                "tickster_id": "jegwg8dr1ktdlm9",
+                "name": "Dexys Midnight Runners",
+                "start": "2026-10-06T17:00:00Z",
+                "end": "2026-10-06T21:59:00Z",
+                "ticket_url": "https://secure.tickster.com/jegwg8dr1ktdlm9",
+                "image_url": "https://static.tickster.com/c9/6c9d6cfe92fcd5b3a78b52077c2bd86271cea4",
+                "venue_name": "Pustervik",
+                "genre": "Soul / New wave",
+                "artists": [
+                    {
+                        "id": 6,
+                        "name": "Dexys Midnight Runners"
+                    }
+                ]
+            }
+        },
+        {
+            "id": 488,
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    11.9708,
+                    57.6965
+                ]
+            },
+            "properties": {
+                "tickster_id": "3j2wkjz0f6tlra9",
+                "name": "Ward Hayden & The Outliers",
+                "start": "2026-10-07T17:00:00Z",
+                "end": "2026-10-07T23:00:00Z",
+                "ticket_url": "https://secure.tickster.com/3j2wkjz0f6tlra9",
+                "image_url": "https://static.tickster.com/f2/09a4075dabfeae757266ef743a2ef58386da77",
+                "venue_name": "Pustervik",
+                "genre": "Americana / Country",
+                "artists": [
+                    {
+                        "id": 19,
+                        "name": "Ward Hayden & The Outliers"
+                    }
+                ]
+            }
+        }
+    ]
+}
