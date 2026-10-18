@@ -1,8 +1,24 @@
 'use client'
-import ConcertMap from './components/Map';
 import NavBar from './components/navbar/Navbar';
 import { useState } from 'react';
 import SideBar from './components/sidebar/Sidebar';
+
+import dynamic from 'next/dynamic';
+
+const ConcertMap = dynamic(
+  () => import('./components/Map'),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="flex flex-1 items-center justify-center"
+        role="status"
+      >
+        Loading concert map…
+      </div>
+    ),
+  }
+);
 
 export default function Home() {
   const [search, setSearch] = useState('');
