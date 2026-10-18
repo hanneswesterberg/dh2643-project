@@ -15,9 +15,11 @@ import Overlay from 'ol/Overlay';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 
+import Cluster from 'ol/source/Cluster';
 import StadiaMaps from 'ol/source/StadiaMaps';
 import VectorSource from 'ol/source/Vector';
 
+import { createEmpty, extend } from 'ol/extent';
 import { fromLonLat } from 'ol/proj';
 
 import Point from 'ol/geom/Point';
@@ -29,7 +31,6 @@ import Stroke from 'ol/style/Stroke';
 import Text from 'ol/style/Text';
 
 type EventDetails = {
-  ticksterId: string;
   name: string;
   start: string;
   end: string | null;
@@ -37,7 +38,7 @@ type EventDetails = {
   imageUrl: string;
   venueName: string;
   artists: string[];
-  genre: string;
+  genres: string[];
 };
 
 type VenueGroup = {
@@ -177,7 +178,6 @@ export default function ConcertMap({
 
   const eventDetails: EventDetails | null = selectedEvent
     ? {
-        ticksterId: selectedEvent.properties.tickster_id,
         name: selectedEvent.properties.name,
         start: selectedEvent.properties.start,
         end: selectedEvent.properties.end,
@@ -185,7 +185,7 @@ export default function ConcertMap({
         imageUrl: selectedEvent.properties.image_url,
         venueName: selectedEvent.properties.venue_name,
         artists: selectedEvent.properties.artists.map((artist) => artist.name),
-        genre: selectedEvent.properties.genre,
+        genres: selectedEvent.properties.genres,
       }
     : null;
 
@@ -228,13 +228,28 @@ export default function ConcertMap({
 
     const markerSource = new VectorSource<Feature<Point>>();
     markerSourceRef.current = markerSource;
+    const clusterSource = new Cluster({
+      distance: 40,
+      source: markerSource,
+      createCluster: (point, features) =>
+        new Feature({
+          geometry: point,
+          features,
+          eventCount: features.reduce(
+            (total, feature) => total + Number(feature.get('eventCount') ?? 0),
+            0
+          ),
+          clusterSize: features.length,
+        }),
+    });
 
     const eventsLayer = new VectorLayer({
-      source: markerSource,
-      style: (feature) =>
-        new Style({
+      source: clusterSource,
+      style: (feature) => {
+        const clusterSize = Number(feature.get('clusterSize') ?? 1);
+        const markerStyle = new Style({
           image: new CircleStyle({
-            radius: 11,
+            radius: clusterSize > 1 ? 14 : 11,
             fill: new Fill({
               color: getMarkerColor(isDarkModeRef.current),
             }),
@@ -247,7 +262,25 @@ export default function ConcertMap({
             textAlign: 'center',
             textBaseline: 'middle',
           }),
-        }),
+        });
+
+        if (clusterSize <= 1) return markerStyle;
+
+        const haloRadius = Math.min(40, 24 + Math.sqrt(clusterSize - 1) * 5);
+        const haloColor = isDarkModeRef.current
+          ? 'rgba(255, 132, 0, 0.2)'
+          : 'rgba(37, 99, 235, 0.2)';
+
+        return [
+          new Style({
+            image: new CircleStyle({
+              radius: haloRadius,
+              fill: new Fill({ color: haloColor }),
+            }),
+          }),
+          markerStyle,
+        ];
+      },
     });
 
     const overlayElement = document.createElement('div');
@@ -278,6 +311,15 @@ export default function ConcertMap({
         zoom: 11,
       }),
     });
+    const zoomControl = map
+      .getTargetElement()
+      ?.querySelector<HTMLElement>('.ol-zoom');
+    if (zoomControl) {
+      zoomControl.style.top = 'auto';
+      zoomControl.style.bottom = '12.5%';
+      zoomControl.style.left = 'auto';
+      zoomControl.style.right = '0.5em';
+    }
     mapInstanceRef.current = map;
 
     const target = mapRef.current;
@@ -296,7 +338,32 @@ export default function ConcertMap({
         (feature) => feature,
         { layerFilter: (layer) => layer === eventsLayer }
       );
-      const venueKey = clickedMarker?.get('venueKey');
+      const clusterMembers = clickedMarker?.get('features');
+      const memberFeatures = Array.isArray(clusterMembers)
+        ? clusterMembers.filter(
+            (member): member is Feature<Point> => member instanceof Feature
+          )
+        : [];
+      if (memberFeatures.length > 1) {
+        const extent = createEmpty();
+        for (const member of memberFeatures) {
+          const geometry = member.getGeometry();
+          if (geometry) extend(extent, geometry.getExtent());
+        }
+        popup.setPosition(undefined);
+        selectedEventRef.current = null;
+        selectedVenueRef.current = null;
+        setSelectedEvent(null);
+        setSelectedVenue(null);
+        setSelectedStage(null);
+        setVenueEventsPage(0);
+        map.getView().fit(extent, {
+          duration: 250,
+          maxZoom: (map.getView().getZoom() ?? 11) + 3,
+        });
+        return;
+      }
+      const venueKey = (memberFeatures[0] ?? clickedMarker)?.get('venueKey');
       const venue =
         typeof venueKey === 'string'
           ? venuesRef.current.get(venueKey)
@@ -356,6 +423,7 @@ export default function ConcertMap({
       popupRef.current = null;
       markerSourceRef.current = null;
       markerFeaturesRef.current = [];
+      clusterSource.setSource(null);
       setPopupElement(null);
       map.setTarget(undefined);
     };
@@ -627,7 +695,12 @@ export default function ConcertMap({
                   ))
                 : 'Unavailable'}
             </div>
-            <div>Genre: {eventDetails.genre}</div>
+            <div>
+              Genres:{' '}
+              {eventDetails.genres.length > 0
+                ? eventDetails.genres.join(', ')
+                : 'Unavailable'}
+            </div>
             <div>Starts: {new Date(eventDetails.start).toLocaleString()}</div>
             <div>
               Ends:{' '}
@@ -635,7 +708,6 @@ export default function ConcertMap({
                 ? new Date(eventDetails.end).toLocaleString()
                 : 'Unavailable'}
             </div>
-            <div>Event ID: {eventDetails.ticksterId}</div>
             {eventDetails.ticketUrl && (
               <div>
                 <a
@@ -710,6 +782,8 @@ export default function ConcertMap({
                       const artists = event.properties.artists
                         .slice(0, 2)
                         .map((artist) => artist.name);
+                      const artistLabel =
+                        artists.length > 0 ? artists.join(' & ') : 'Event';
 
                       return (
                         <button
@@ -739,15 +813,26 @@ export default function ConcertMap({
                             boxShadow: '0 3px 10px rgba(0, 0, 0, 0.35)',
                             color: 'white',
                             cursor: 'pointer',
-                            fontSize: '10px',
+                            fontSize:
+                              artistLabel.length > 24
+                                ? '8px'
+                                : artistLabel.length > 16
+                                  ? '9px'
+                                  : '10px',
                             fontWeight: 600,
                             lineHeight: 1.15,
                             textAlign: 'center',
                           }}
                         >
-                          {artists.length > 0
-                            ? artists.join(' & ')
-                            : 'Event'}
+                          <span
+                            style={{
+                              width: '100%',
+                              minWidth: 0,
+                              overflowWrap: 'anywhere',
+                            }}
+                          >
+                            {artistLabel}
+                          </span>
                         </button>
                       );
                     })}
@@ -822,13 +907,26 @@ export default function ConcertMap({
                       boxShadow: '0 3px 12px rgba(0, 0, 0, 0.4)',
                       color: 'white',
                       cursor: 'pointer',
-                      fontSize: '11px',
+                      fontSize:
+                        centerMarkerLabel.length > 26
+                          ? '8px'
+                          : centerMarkerLabel.length > 18
+                            ? '9px'
+                            : '11px',
                       fontWeight: 700,
                       lineHeight: 1.1,
                       textAlign: 'center',
                     }}
                   >
-                    {centerMarkerLabel}
+                    <span
+                      style={{
+                        width: '100%',
+                        minWidth: 0,
+                        overflowWrap: 'anywhere',
+                      }}
+                    >
+                      {centerMarkerLabel}
+                    </span>
                   </button>
                   {pageCount > 1 && (
                     <div
