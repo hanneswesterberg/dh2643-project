@@ -50,6 +50,10 @@ type VenueGroup = {
 
 const EVENTS_PER_PAGE = 12;
 
+function getMarkerColor(isDarkMode: boolean): string {
+  return isDarkMode ? 'rgb(255, 132, 0)' : '#2563eb';
+}
+
 function getEventGenres(event: Event): string[] {
   const genres = new Set<string>();
   const props = event.properties as Record<string, unknown>;
@@ -128,7 +132,11 @@ function groupEventsByVenue(events: Event[]): VenueGroup[] {
   return Array.from(groups.values());
 }
 
-export default function ConcertMap() {
+interface ConcertMapProps {
+  isDarkMode: boolean;
+}
+
+export default function ConcertMap({ isDarkMode }: ConcertMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<OLMap | null>(null);
   const basemapLayerRef = useRef<TileLayer<StadiaMaps> | null>(null);
@@ -150,6 +158,7 @@ export default function ConcertMap() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [popupElement, setPopupElement] = useState<HTMLDivElement | null>(null);
+  const isDarkModeRef = useRef(isDarkMode);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<string>('');
@@ -221,7 +230,9 @@ export default function ConcertMap() {
         new Style({
           image: new CircleStyle({
             radius: 11,
-            fill: new Fill({ color: 'rgb(255, 132, 0)' }),
+            fill: new Fill({
+              color: getMarkerColor(isDarkModeRef.current),
+            }),
             stroke: new Stroke({ color: 'white', width: 2 }),
           }),
           text: new Text({
@@ -346,6 +357,8 @@ export default function ConcertMap() {
   }, []);
 
   useEffect(() => {
+    isDarkModeRef.current = isDarkMode;
+    markerSourceRef.current?.changed();
     basemapLayerRef.current?.setSource(
       new StadiaMaps({
         layer: isDarkMode ? 'alidade_smooth_dark' : 'alidade_smooth',
@@ -428,7 +441,8 @@ export default function ConcertMap() {
       style={{
         position: 'relative',
         width: '100%',
-        height: '100vh',
+        flex: 1,
+        minHeight: 0,
         colorScheme: isDarkMode ? 'dark' : 'light',
       }}
     >
@@ -652,6 +666,11 @@ export default function ConcertMap() {
                       selectedStage.toLocaleLowerCase()
                   )
                 : selectedVenue.events;
+              const centerMarkerLabel =
+                selectedStage ??
+                (selectedVenue.stageNames.length > 1
+                  ? 'All stages'
+                  : selectedVenue.name);
               const pageCount = Math.ceil(
                 stageEvents.length / EVENTS_PER_PAGE
               );
@@ -711,7 +730,7 @@ export default function ConcertMap() {
                             padding: '6px',
                             border: '3px solid white',
                             borderRadius: '50%',
-                            background: '#2563eb',
+                            background: getMarkerColor(isDarkMode),
                             boxShadow: '0 3px 10px rgba(0, 0, 0, 0.35)',
                             color: 'white',
                             cursor: 'pointer',
@@ -758,7 +777,7 @@ export default function ConcertMap() {
                           minWidth: 0,
                           flex: 1,
                           background: isDarkMode ? '#111827' : 'white',
-                          color: isDarkMode ? '#f9fafb' : '#171717',
+                          color: isDarkMode ? '#ebebeb' : '#171717',
                         }}
                       >
                         <option value="">All stages</option>
@@ -772,8 +791,8 @@ export default function ConcertMap() {
                   )}
                   <button
                     type="button"
-                    aria-label={selectedVenue.name}
-                    title={selectedVenue.name}
+                    aria-label={centerMarkerLabel}
+                    title={centerMarkerLabel}
                     onClick={() => {
                       popupRef.current?.setPosition(undefined);
                       selectedEventRef.current = null;
@@ -794,7 +813,7 @@ export default function ConcertMap() {
                       padding: '8px',
                       border: '4px solid white',
                       borderRadius: '50%',
-                      background: '#1d4ed8',
+                      background: getMarkerColor(isDarkMode),
                       boxShadow: '0 3px 12px rgba(0, 0, 0, 0.4)',
                       color: 'white',
                       cursor: 'pointer',
@@ -804,7 +823,7 @@ export default function ConcertMap() {
                       textAlign: 'center',
                     }}
                   >
-                    {selectedVenue.name}
+                    {centerMarkerLabel}
                   </button>
                   {pageCount > 1 && (
                     <div
@@ -833,8 +852,18 @@ export default function ConcertMap() {
                         style={{
                           border: 0,
                           borderRadius: '50%',
-                          background: venueEventsPage === 0 ? '#e5e7eb' : '#2563eb',
-                          color: venueEventsPage === 0 ? '#6b7280' : 'white',
+                          background:
+                            venueEventsPage === 0
+                              ? isDarkMode
+                                ? '#4b5563'
+                                : '#e5e7eb'
+                              : getMarkerColor(isDarkMode),
+                          color:
+                            venueEventsPage === 0
+                              ? isDarkMode
+                                ? '#d1d5db'
+                                : '#6b7280'
+                              : 'white',
                           cursor: venueEventsPage === 0 ? 'default' : 'pointer',
                           fontSize: '20px',
                           width: '32px',
@@ -860,11 +889,15 @@ export default function ConcertMap() {
                           borderRadius: '50%',
                           background:
                             venueEventsPage === pageCount - 1
-                              ? '#e5e7eb'
-                              : '#2563eb',
+                              ? isDarkMode
+                                ? '#4b5563'
+                                : '#e5e7eb'
+                              : getMarkerColor(isDarkMode),
                           color:
                             venueEventsPage === pageCount - 1
-                              ? '#6b7280'
+                              ? isDarkMode
+                                ? '#d1d5db'
+                                : '#6b7280'
                               : 'white',
                           cursor:
                             venueEventsPage === pageCount - 1

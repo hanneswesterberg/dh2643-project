@@ -25,6 +25,22 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+.navbar {
+  transition:
+    background-color 220ms ease,
+    color 220ms ease;
+}
+
+.navbar--light {
+  background-color: #ffffff;
+  color: #171717;
+}
+
+.navbar--dark {
+  background-color: #111827;
+  color: #f9fafb;
+}
+
 .theme-toggle {
   display: flex;
   align-items: center;
