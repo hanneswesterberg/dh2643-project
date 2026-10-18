@@ -432,6 +432,15 @@ export default function ConcertMap() {
         colorScheme: isDarkMode ? 'dark' : 'light',
       }}
     >
+    {/* Move OpenLayers zoom buttons to the bottom-right */}
+    <style>{`
+      .ol-zoom {
+        top: auto !important;
+        left: auto !important;
+        bottom: 40px !important;
+        right: 8px !important;
+      }
+    `}</style>
       <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
       <MapFilterBox
         genres={availableGenres}
