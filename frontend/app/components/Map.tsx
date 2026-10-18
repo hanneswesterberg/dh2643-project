@@ -136,7 +136,7 @@ interface ConcertMapProps {
   isDarkMode: boolean;
 }
 
-export default function ConcertMap({ isDarkMode }: ConcertMapProps) {
+export default function ConcertMap({ isDarkMode: initialIsDarkMode }: ConcertMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<OLMap | null>(null);
   const basemapLayerRef = useRef<TileLayer<StadiaMaps> | null>(null);
@@ -158,8 +158,8 @@ export default function ConcertMap({ isDarkMode }: ConcertMapProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [popupElement, setPopupElement] = useState<HTMLDivElement | null>(null);
-  const isDarkModeRef = useRef(isDarkMode);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const isDarkModeRef = useRef(initialIsDarkMode);
+  const [isDarkMode, setIsDarkMode] = useState(initialIsDarkMode);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
