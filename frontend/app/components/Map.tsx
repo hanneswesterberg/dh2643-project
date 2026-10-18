@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import MapFilterBox from './MapFilterBox';
 import { createPortal } from 'react-dom';
 import 'ol/ol.css';
 
@@ -48,6 +49,50 @@ type VenueGroup = {
 };
 
 const EVENTS_PER_PAGE = 12;
+
+function getEventGenres(event: Event): string[] {
+  const genres = new Set<string>();
+  const props = event.properties as Record<string, unknown>;
+
+  const addGenreString = (val: unknown) => {
+    if (typeof val === 'string') {
+      val.split(',').forEach((part) => {
+        const trimmed = part.trim();
+        if (trimmed && trimmed.toLowerCase() !== 'unavailable') {
+          genres.add(trimmed);
+        }
+      });
+    } else if (val && typeof val === 'object' && 'name' in val) {
+      const name = (val as { name?: unknown }).name;
+      if (typeof name === 'string' && name.trim()) {
+        genres.add(name.trim());
+      }
+    }
+  };
+
+  // Check top-level event.properties.genre or event.properties.genres
+  if (Array.isArray(props.genres)) {
+    props.genres.forEach(addGenreString);
+  } else {
+    addGenreString(props.genre);
+  }
+
+  // Check nested genres inside event.properties.artists
+  if (Array.isArray(props.artists)) {
+    for (const artist of props.artists) {
+      if (artist && typeof artist === 'object') {
+        const artistObj = artist as Record<string, unknown>;
+        if (Array.isArray(artistObj.genres)) {
+          artistObj.genres.forEach(addGenreString);
+        } else {
+          addGenreString(artistObj.genre);
+        }
+      }
+    }
+  }
+
+  return Array.from(genres);
+}
 
 function groupEventsByVenue(events: Event[]): VenueGroup[] {
   const groups = new Map<string, VenueGroup>();
@@ -106,6 +151,15 @@ export default function ConcertMap() {
   const [error, setError] = useState<string | null>(null);
   const [popupElement, setPopupElement] = useState<HTMLDivElement | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+
+  const handleToggleGenre = (genre: string) => {
+    setSelectedGenres((prev) =>
+      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]
+    );
+  };
 
   const eventDetails: EventDetails | null = selectedEvent
     ? {
@@ -126,7 +180,7 @@ export default function ConcertMap() {
 
     const loadEvents = async () => {
       try {
-        const response = await fetch('/api/events/', {
+        const response = await fetch('/api/events', {
           signal: controller.signal,
         });
         if (!response.ok) {
@@ -299,27 +353,74 @@ export default function ConcertMap() {
     );
   }, [isDarkMode]);
 
-  useEffect(() => {
-    if (!events) return;
+  // Collect all unique genres and sort them alphabetically
+  const availableGenres = useMemo(() => {
+    if (!events) return [];
+    const genreSet = new Set<string>();
 
-    const venues = groupEventsByVenue(events.features);
-    venuesRef.current = new Map(venues.map((venue) => [venue.key, venue]));
-    const markerFeatures = venues.map(
-      (venue) =>
-        new Feature({
-          geometry: new Point(fromLonLat(venue.coordinates)),
-          venueKey: venue.key,
-          eventCount: venue.events.length,
-        })
-    );
-    markerFeaturesRef.current = markerFeatures;
+    for (const event of events.features) {
+      for (const genre of getEventGenres(event)) {
+        genreSet.add(genre);
+      }
+    }
 
-    const markerSource = markerSourceRef.current;
-    if (!markerSource) return;
-
-    markerSource.clear(true);
-    markerSource.addFeatures(markerFeatures);
+    return Array.from(genreSet).sort((a, b) => a.localeCompare(b));
   }, [events]);
+
+  // Filter events by multi-genre selection and date interval
+  const filteredFeatures = useMemo(() => {
+    if (!events) return [];
+
+    return events.features.filter((event) => {
+      // Check Genre match (matches if no genres are checked, or if the event has at least one checked genre)
+      if (selectedGenres.length > 0) {
+        const eventGenres = getEventGenres(event);
+        const hasMatchingGenre = eventGenres.some((g) =>
+          selectedGenres.includes(g)
+        );
+        if (!hasMatchingGenre) return false;
+      }
+
+      // Check date interval match
+      if (startDate || endDate) {
+        const eventDate = new Date(event.properties.start).toLocaleDateString('sv-SE');
+        if (startDate && eventDate < startDate) return false;
+        if (endDate && eventDate > endDate) return false;
+      }
+
+      return true;
+    });
+  }, [events, selectedGenres, startDate, endDate]);
+
+  useEffect(() => {
+  if (!events) return;
+
+  // Close any open popup when filters change so stale popups don't linger
+  popupRef.current?.setPosition(undefined);
+  selectedEventRef.current = null;
+  selectedVenueRef.current = null;
+  setSelectedEvent(null);
+  setSelectedVenue(null);
+  setSelectedStage(null);
+
+  const venues = groupEventsByVenue(filteredFeatures);
+  venuesRef.current = new Map(venues.map((venue) => [venue.key, venue]));
+  const markerFeatures = venues.map(
+    (venue) =>
+      new Feature({
+        geometry: new Point(fromLonLat(venue.coordinates)),
+        venueKey: venue.key,
+        eventCount: venue.events.length,
+      })
+  );
+  markerFeaturesRef.current = markerFeatures;
+
+  const markerSource = markerSourceRef.current;
+  if (!markerSource) return;
+
+  markerSource.clear(true);
+  markerSource.addFeatures(markerFeatures);
+}, [events, filteredFeatures]);
 
   return (
     <div
@@ -332,6 +433,22 @@ export default function ConcertMap() {
       }}
     >
       <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+      <MapFilterBox
+        genres={availableGenres}
+        selectedGenres={selectedGenres}
+        onToggleGenre={handleToggleGenre}
+        startDate={startDate}
+        onStartDateChange={setStartDate}
+        endDate={endDate}
+        onEndDateChange={setEndDate}
+        onReset={() => {
+          setSelectedGenres([]);
+          setStartDate('');
+          setEndDate('');
+        }}
+        totalMatching={filteredFeatures.length}
+        isDarkMode={isDarkMode}
+      />
       <button
         type="button"
         role="switch"
