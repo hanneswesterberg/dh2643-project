@@ -130,6 +130,35 @@ body {
   color: #d1d5db;
 }
 
+[data-theme='dark'] {
+  --action-orange: rgb(255, 132, 0);
+  --action-orange-hover: rgb(230, 119, 0);
+}
+
+[data-theme='dark'] .sidebar-panel .bg-blue-600 {
+  background-color: var(--action-orange);
+}
+
+[data-theme='dark'] .sidebar-panel .bg-blue-600:hover {
+  background-color: var(--action-orange-hover);
+}
+
+.profile-page[data-theme='dark'] .profile-content .bg-blue-600 {
+  background-color: var(--action-orange);
+}
+
+.profile-page[data-theme='dark'] .profile-content button.bg-blue-600:disabled {
+  background-color: #9ca3af;
+}
+
+.profile-page[data-theme='dark'] .profile-content .bg-blue-600:hover {
+  background-color: var(--action-orange-hover);
+}
+
+.profile-page[data-theme='dark'] .profile-content [class*='bg-blue-600/60'] {
+  background-color: rgb(255 132 0 / 60%);
+}
+
 .theme-toggle {
   display: flex;
   align-items: center;
