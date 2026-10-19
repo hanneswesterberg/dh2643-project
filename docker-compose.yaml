@@ -36,6 +36,7 @@ services:
       - /app/node_modules
     ports:
       - "3000:3000"
+      - "80:3000"
     depends_on:
       - backend
     #command: tail -f /dev/null # Placeholder until Next.js is initialized
