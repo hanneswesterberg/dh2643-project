@@ -16,7 +16,7 @@ type CropImageDimensions = {
 export default function UserProfile() {
     const router = useRouter();
     const [profile, setProfile] = useState<UserProfileData | null>(null);
-    const [savedProfile, setSavedProfile] = useState<Pick<UserProfileData, "username" | "email" | "bio"> | null>(null);
+    const [savedProfile, setSavedProfile] = useState<Pick<UserProfileData, "username" | "display_name" | "email" | "bio"> | null>(null);
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
     const [saving, setSaving] = useState(false);
@@ -67,6 +67,7 @@ export default function UserProfile() {
         savedProfile &&
         (
             profile.username !== savedProfile.username ||
+            profile.display_name !== savedProfile.display_name ||
             profile.email !== savedProfile.email ||
             profile.bio !== savedProfile.bio ||
             pictureFile
@@ -118,6 +119,7 @@ export default function UserProfile() {
                 setProfile(response);
                 setSavedProfile({
                     username: response.username,
+                    display_name: response.display_name ?? "",
                     email: response.email,
                     bio: response.bio,
                 });
@@ -164,6 +166,7 @@ export default function UserProfile() {
         try {
             const data = await updateProfile(
                 profile.username,
+                profile.display_name,
                 profile.email,
                 pictureFile,
                 originalPictureFile,
@@ -173,6 +176,7 @@ export default function UserProfile() {
             setProfile(updatedProfile);
             setSavedProfile({
                 username: updatedProfile.username,
+                display_name: updatedProfile.display_name ?? "",
                 email: updatedProfile.email,
                 bio: updatedProfile.bio,
             });
@@ -599,6 +603,16 @@ export default function UserProfile() {
                             {usernameCheckError}
                         </span>
                     )}
+                </label>
+                <label className="block">
+                    Display Name
+                    <input
+                        type="text"
+                        autoComplete="name"
+                        value={profile.display_name ?? ""}
+                        onChange={(event) => updateField("display_name", event.target.value)}
+                        className="mt-1 block w-full rounded border p-2"
+                    />
                 </label>
                 <label className="block">
                     Email

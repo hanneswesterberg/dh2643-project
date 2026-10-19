@@ -167,6 +167,7 @@ export async function saveEvent(
 
 export async function updateProfile(
     username: string,
+    displayName: string,
     email: string,
     picture: File | null,
     originalPicture: File | null,
@@ -175,6 +176,7 @@ export async function updateProfile(
     const form = new FormData();
 
     form.append("username", username);
+    form.append("display_name", displayName);
     form.append("email", email);
     if (picture) {
         form.append("profile_picture", picture);
