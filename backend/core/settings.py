@@ -24,24 +24,20 @@ env.read_env(BASE_DIR.parent / ".env")
 # Cast TICKSTER_API_KEY as a string. No default means it will fail fast if missing.
 TICKSTER_API_KEY = env("TICKSTER_API_KEY")
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-185tqa@kgr7ge11q7_pj*fbbbjmp=(jn&2ey=tndi_h7l#oqc='
+# Fails fast if missing in production.
+SECRET_KEY = env('SECRET_KEY', default='django-insecure-185tqa@kgr7ge11q7_pj*fbbbjmp=(jn&2ey=tndi_h7l#oqc=')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Defaults to False for security, unless explicitly set to True in local .env
+DEBUG = env.bool('DEBUG', default=False)
 
-ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS = env.list(
-    'CSRF_TRUSTED_ORIGINS',
-    default=['http://localhost:3000'],
-)
+# Reads a comma-separated list from .env, with safe local defaults
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', 'backend'])
 
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=['http://localhost:3000'])
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -89,14 +85,15 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# Database
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'concerts_db',
-        'USER': 'myuser',
-        'PASSWORD': 'mypassword',
-        'HOST': 'db',  # matches the service name in docker-compose.yaml
-        'PORT': '5432',
+        'NAME': env('POSTGRES_DB', default='concerts_db'),
+        'USER': env('POSTGRES_USER', default='myuser'),
+        'PASSWORD': env('POSTGRES_PASSWORD', default='mypassword'),
+        'HOST': env('POSTGRES_HOST', default='db'),
+        'PORT': env('POSTGRES_PORT', default='5432'),
     }
 }
 
@@ -132,14 +129,11 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
+# Static files
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # Required when DEBUG=False to serve admin panel CSS
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
