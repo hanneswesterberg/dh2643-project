@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from io import BytesIO
 import tempfile
 from pathlib import Path
@@ -46,8 +47,10 @@ class SavedEventsAPITests(TestCase):
         self.assertEqual(save_response.status_code, 201)
         self.assertTrue(UserProfile.objects.filter(user=self.user).exists())
         self.assertEqual(list_response.status_code, 200)
+        saved_event_response = list_response.json()
+        added_at = saved_event_response[0].pop('added_at')
         self.assertEqual(
-            list_response.json(),
+            saved_event_response,
             [{
                 'id': self.event.id,
                 'tickster_id': 'saved-event-1',
@@ -61,6 +64,7 @@ class SavedEventsAPITests(TestCase):
                 'genre': '',
             }],
         )
+        self.assertIsNotNone(datetime.fromisoformat(added_at.replace('Z', '+00:00')))
         self.assertEqual(remove_response.status_code, 200)
         self.assertEqual(self.client.get('/api/users/saved-events/').json(), [])
 

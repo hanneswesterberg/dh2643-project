@@ -21,7 +21,13 @@ class UserProfile(models.Model):
     location = models.CharField(max_length=100, blank=True)
     website = models.URLField(max_length=200, blank=True)
 
-    saved_events = models.ManyToManyField(Event, blank=True, related_name='saved_by_users')
+    saved_events = models.ManyToManyField(
+        Event,
+        blank=True,
+        related_name='saved_by_users',
+        through='SavedEventBookmark',
+        through_fields=('user_profile', 'event'),
+    )
     favorite_genres = models.ManyToManyField(
         'events.Genre',
         blank=True,
@@ -33,3 +39,25 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"Profile for {self.user.username}"
+
+
+class SavedEventBookmark(models.Model):
+    user_profile = models.ForeignKey(
+        UserProfile,
+        on_delete=models.CASCADE,
+        related_name='saved_event_bookmarks',
+    )
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name='saved_event_bookmarks',
+    )
+    added_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user_profile', 'event'],
+                name='unique_profile_saved_event',
+            ),
+        ]

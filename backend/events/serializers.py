@@ -46,14 +46,18 @@ class SavedEventSerializer(serializers.ModelSerializer):
     artists = ArtistSerializer(many=True, read_only=True)
     venue_name = serializers.CharField(source='venue.name', read_only=True, default='')
     genre = serializers.SerializerMethodField()
+    added_at = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
         fields = [
             'id', 'tickster_id', 'name', 'start', 'end',
-            'ticket_url', 'image_url', 'venue_name', 'artists', 'genre',
+            'ticket_url', 'image_url', 'venue_name', 'artists', 'genre', 'added_at',
         ]
 
     def get_genre(self, obj):
         return serialize_event_genre(obj)
+
+    def get_added_at(self, obj):
+        return self.context['added_at_by_event_id'][obj.pk]
     

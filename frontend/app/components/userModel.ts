@@ -19,4 +19,5 @@ export type SavedEvent = {
     venue_name: string;
     artists: { id: number; name: string }[];
     genre: string;
+    added_at: string | null;
 };

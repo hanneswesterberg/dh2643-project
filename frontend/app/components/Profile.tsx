@@ -2,7 +2,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { UserProfileData } from "./userModel";
-import { checkUsernameAvailability, loadProfile, updatePassword, updateProfile} from "./Lib/userAPI"
+import { checkUsernameAvailability, deleteAccount, loadProfile, updatePassword, updateProfile} from "./Lib/userAPI"
 
 type BioFormat = "bold" | "italic" | "underline";
 type UsernameCheckState = "idle" | "checking" | "available" | "taken" | "error";
@@ -20,6 +20,7 @@ export default function UserProfile() {
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
     const [saving, setSaving] = useState(false);
+    const [deletingAccount, setDeletingAccount] = useState(false);
     const [passwordChangeEnabled, setPasswordChangeEnabled] = useState(false);
     const [newPassword, setNewPassword] = useState("");
     const [confirmNewPassword, setConfirmNewPassword] = useState("");
@@ -241,6 +242,26 @@ export default function UserProfile() {
         }
     }
 
+    async function handleDeleteAccount() {
+        if (!window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+            return;
+        }
+
+        setDeletingAccount(true);
+        setError("");
+        setNotice("");
+        try {
+            await deleteAccount();
+            router.replace("/");
+        } catch (deleteError) {
+            setError(deleteError instanceof Error
+                ? deleteError.message
+                : "Could not delete your account.");
+        } finally {
+            setDeletingAccount(false);
+        }
+    }
+
     function updateBioFromEditor() {
         const editor = bioEditor.current;
         if (editor) {
@@ -261,7 +282,7 @@ export default function UserProfile() {
     }
 
     function formatButtonClass(command: BioFormat, textStyle: string) {
-        return `rounded border px-2 py-1 ${textStyle} ${
+        return `cursor-pointer rounded border px-2 py-1 ${textStyle} ${
             activeFormats[command]
                 ? "border-gray-600 bg-gray-300 text-gray-950 shadow-inner"
                 : "border-gray-300 bg-white hover:bg-gray-100"
@@ -776,6 +797,14 @@ export default function UserProfile() {
                     </p>
                 </div>
 
+                <button
+                    type="button"
+                    onClick={() => void handleDeleteAccount()}
+                    disabled={deletingAccount}
+                    className="event-remove-button cursor-pointer rounded border border-red-600 bg-transparent px-3 py-2 font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                >
+                    {deletingAccount ? "Deleting..." : "Delete account"}
+                </button>
                 {error && <p role="alert">{error}</p>}
                 {notice && <p role="status">{notice}</p>}
             </form>

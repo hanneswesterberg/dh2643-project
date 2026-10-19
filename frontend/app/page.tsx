@@ -82,6 +82,8 @@ export default function Home() {
         isDarkMode={isDarkMode}
         onDarkModeChange={setIsDarkMode}
         isSidebarOpen={isSidebarOpen}
+        authenticatedUsername={currentUser?.username ?? null}
+        onLoginRequired={() => setSidebarOpen(true)}
       />
     </main>
   );

@@ -69,6 +69,20 @@ body {
   color: #f9fafb;
 }
 
+.profile-page[data-theme='light'] .saved-events-sort {
+  border-color: #d1d5db;
+  background-color: #ffffff;
+  color: #171717;
+  color-scheme: light;
+}
+
+.profile-page[data-theme='dark'] .saved-events-sort {
+  border-color: #4b5563;
+  background-color: #1f2937;
+  color: #f9fafb;
+  color-scheme: dark;
+}
+
 .profile-page[data-theme='dark'] .profile-content input,
 .profile-page[data-theme='dark'] .profile-content [contenteditable='true'] {
   border-color: #4b5563;
