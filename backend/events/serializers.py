@@ -7,6 +7,16 @@ class ArtistSerializer(serializers.ModelSerializer):
         model = Artist
         fields = ['id', 'name']
 
+
+def serialize_event_genre(obj):
+    genres = {
+        genre.name
+        for artist in obj.artists.all()
+        for genre in artist.genres.all()
+    }
+    return ", ".join(sorted(genres))
+
+
 class EventSerializer(GeoFeatureModelSerializer):
     artists = ArtistSerializer(many=True, read_only=True)
     
@@ -29,10 +39,21 @@ class EventSerializer(GeoFeatureModelSerializer):
         ]
 
     def get_genre(self, obj):
-        genres = {
-            genre.name
-            for artist in obj.artists.all()
-            for genre in artist.genres.all()
-        }
-        return ", ".join(sorted(genres))
+        return serialize_event_genre(obj)
+
+
+class SavedEventSerializer(serializers.ModelSerializer):
+    artists = ArtistSerializer(many=True, read_only=True)
+    venue_name = serializers.CharField(source='venue.name', read_only=True, default='')
+    genre = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Event
+        fields = [
+            'id', 'tickster_id', 'name', 'start', 'end',
+            'ticket_url', 'image_url', 'venue_name', 'artists', 'genre',
+        ]
+
+    def get_genre(self, obj):
+        return serialize_event_genre(obj)
     

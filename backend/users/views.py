@@ -8,6 +8,7 @@ from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from events.models import Event
+from events.serializers import SavedEventSerializer
 from .models import UserProfile
 from .serializers import UserAccountSerializer
 
@@ -147,8 +148,14 @@ class SavedEventsView(APIView):
         if not request.user.is_authenticated:
             return Response({"error": "Not logged in"}, status=status.HTTP_401_UNAUTHORIZED)
 
-        saved_events = request.user.profile.saved_events.values('id', 'name', 'start')
-        return Response(list(saved_events), status=status.HTTP_200_OK)
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        saved_events = profile.saved_events.select_related('venue').prefetch_related(
+            'artists', 'artists__genres',
+        )
+        return Response(
+            SavedEventSerializer(saved_events, many=True).data,
+            status=status.HTTP_200_OK,
+        )
 
 
 class ManageSavedEventView(APIView):
@@ -159,7 +166,8 @@ class ManageSavedEventView(APIView):
 
         try:
             event = Event.objects.get(id=event_id)
-            request.user.profile.saved_events.add(event)
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            profile.saved_events.add(event)
             return Response({"message": "Event saved"}, status=status.HTTP_201_CREATED)
         except Event.DoesNotExist:
             return Response({"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -171,7 +179,8 @@ class ManageSavedEventView(APIView):
 
         try:
             event = Event.objects.get(id=event_id)
-            request.user.profile.saved_events.remove(event)
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
+            profile.saved_events.remove(event)
             return Response({"message": "Event removed"}, status=status.HTTP_200_OK)
         except Event.DoesNotExist:
             return Response({"error": "Event not found"}, status=status.HTTP_404_NOT_FOUND)

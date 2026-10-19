@@ -11,7 +11,82 @@ from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from PIL import Image
 from events.models import Genre
+from events.models import Event
 from .models import UserProfile
+
+
+class SavedEventsAPITests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='event-owner',
+            password='secure-password',
+        )
+        self.other_user = User.objects.create_user(
+            username='another-event-owner',
+            password='secure-password',
+        )
+        self.event = Event.objects.create(
+            tickster_id='saved-event-1',
+            name='Saved Concert',
+            start='2026-12-01T19:00:00Z',
+        )
+
+    def test_authenticated_user_can_save_list_and_remove_events(self):
+        self.client.force_login(self.user)
+
+        save_response = self.client.post(
+            f'/api/users/saved-events/{self.event.id}/',
+        )
+        list_response = self.client.get('/api/users/saved-events/')
+        remove_response = self.client.delete(
+            f'/api/users/saved-events/{self.event.id}/',
+        )
+
+        self.assertEqual(save_response.status_code, 201)
+        self.assertTrue(UserProfile.objects.filter(user=self.user).exists())
+        self.assertEqual(list_response.status_code, 200)
+        self.assertEqual(
+            list_response.json(),
+            [{
+                'id': self.event.id,
+                'tickster_id': 'saved-event-1',
+                'name': 'Saved Concert',
+                'start': '2026-12-01T19:00:00Z',
+                'end': None,
+                'ticket_url': '',
+                'image_url': '',
+                'venue_name': '',
+                'artists': [],
+                'genre': '',
+            }],
+        )
+        self.assertEqual(remove_response.status_code, 200)
+        self.assertEqual(self.client.get('/api/users/saved-events/').json(), [])
+
+    def test_saved_events_are_private_to_each_user(self):
+        self.client.force_login(self.user)
+        self.client.post(f'/api/users/saved-events/{self.event.id}/')
+        self.client.force_login(self.other_user)
+
+        response = self.client.get('/api/users/saved-events/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), [])
+
+    def test_saved_event_endpoints_require_authentication(self):
+        self.assertEqual(self.client.get('/api/users/saved-events/').status_code, 401)
+        self.assertEqual(
+            self.client.post(f'/api/users/saved-events/{self.event.id}/').status_code,
+            401,
+        )
+
+    def test_saving_unknown_event_returns_not_found(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post('/api/users/saved-events/999999/')
+
+        self.assertEqual(response.status_code, 404)
 
 
 class UserProfileTests(TestCase):

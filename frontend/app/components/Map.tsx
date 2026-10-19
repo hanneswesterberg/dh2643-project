@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import 'ol/ol.css';
 
 import type { Event, EventFeatureCollection } from '../lib/definition';
+import { getSavedEvents, saveEvent } from './Lib/userAPI';
 
 import Feature from 'ol/Feature';
 import OLMap from 'ol/Map';
@@ -29,6 +30,7 @@ import Stroke from 'ol/style/Stroke';
 import Text from 'ol/style/Text';
 
 type EventDetails = {
+  id: number;
   ticksterId: string;
   name: string;
   start: string;
@@ -136,12 +138,16 @@ interface ConcertMapProps {
   isDarkMode: boolean;
   onDarkModeChange: (isDarkMode: boolean) => void;
   isSidebarOpen: boolean;
+  authenticatedUsername: string | null;
+  onLoginRequired: () => void;
 }
 
 export default function ConcertMap({
   isDarkMode,
   onDarkModeChange,
   isSidebarOpen,
+  authenticatedUsername,
+  onLoginRequired,
 }: ConcertMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<OLMap | null>(null);
@@ -168,6 +174,11 @@ export default function ConcertMap({
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [savedEventIds, setSavedEventIds] = useState<Set<number>>(new Set());
+  const [savedEventsUsername, setSavedEventsUsername] = useState<string | null>(null);
+  const [savingEventId, setSavingEventId] = useState<number | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
   const handleToggleGenre = (genre: string) => {
     setSelectedGenres((prev) =>
@@ -177,6 +188,7 @@ export default function ConcertMap({
 
   const eventDetails: EventDetails | null = selectedEvent
     ? {
+        id: selectedEvent.id,
         ticksterId: selectedEvent.properties.tickster_id,
         name: selectedEvent.properties.name,
         start: selectedEvent.properties.start,
@@ -188,6 +200,65 @@ export default function ConcertMap({
         genre: selectedEvent.properties.genre,
       }
     : null;
+
+  useEffect(() => {
+    if (!authenticatedUsername) return;
+
+    let isCurrent = true;
+    getSavedEvents()
+      .then((savedEvents) => {
+        if (isCurrent) {
+          setSavedEventIds(new Set(savedEvents.map((event) => event.id)));
+          setSavedEventsUsername(authenticatedUsername);
+          setSaveError(null);
+          setSaveNotice(null);
+        }
+      })
+      .catch((caughtError: unknown) => {
+        if (isCurrent) {
+          setSaveError(
+            caughtError instanceof Error
+              ? caughtError.message
+              : 'Could not load your saved events.',
+          );
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [authenticatedUsername]);
+
+  async function handleSaveEvent(eventId: number) {
+    setSaveError(null);
+    setSaveNotice(null);
+    if (!authenticatedUsername) {
+      setSaveError('Sign in to add events to your profile.');
+      onLoginRequired();
+      return;
+    }
+
+    setSavingEventId(eventId);
+    try {
+      await saveEvent(eventId);
+      setSavedEventIds((current) => new Set(current).add(eventId));
+      setSavedEventsUsername(authenticatedUsername);
+      setSaveNotice('Event added to your events.');
+    } catch (caughtError) {
+      setSaveError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Could not save this event.',
+      );
+    } finally {
+      setSavingEventId(null);
+    }
+  }
+
+  const isSaved = (eventId: number) =>
+    authenticatedUsername !== null &&
+    savedEventsUsername === authenticatedUsername &&
+    savedEventIds.has(eventId);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -660,6 +731,34 @@ export default function ConcertMap({
                 </a>
               </div>
             )}
+            <div style={{ marginTop: '10px' }}>
+              <button
+                type="button"
+                onClick={() => void handleSaveEvent(eventDetails.id)}
+                disabled={
+                  isSaved(eventDetails.id) ||
+                  savingEventId === eventDetails.id
+                }
+                style={{
+                  border: 0,
+                  borderRadius: '6px',
+                  padding: '8px 10px',
+                  background: isDarkMode ? 'rgb(255, 132, 0)' : '#2563eb',
+                  color: 'white',
+                  cursor: isSaved(eventDetails.id) ? 'default' : 'pointer',
+                  opacity: savingEventId === eventDetails.id ? 0.65 : 1,
+                  font: 'inherit',
+                }}
+              >
+                {isSaved(eventDetails.id)
+                  ? 'Added to your events'
+                  : savingEventId === eventDetails.id
+                    ? 'Adding...'
+                    : 'Add to your events'}
+              </button>
+            </div>
+            {saveError && <p role="alert">{saveError}</p>}
+            {saveNotice && <p role="status">{saveNotice}</p>}
           </>
         ) : selectedVenue ? (
           <>
