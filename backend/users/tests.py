@@ -173,6 +173,25 @@ class LogoutViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self.client.get('/api/users/me/').status_code, 401)
 
+    def test_logout_accepts_frontend_origin_with_csrf_validation(self):
+        client = APIClient(enforce_csrf_checks=True)
+        client.force_login(self.user)
+        csrf_response = client.get(
+            '/api/users/csrf/',
+            HTTP_HOST='backend:8000',
+        )
+        csrf_token = csrf_response.cookies['csrftoken'].value
+
+        response = client.post(
+            '/api/users/logout/',
+            HTTP_HOST='backend:8000',
+            HTTP_ORIGIN='http://localhost:3000',
+            HTTP_X_CSRFTOKEN=csrf_token,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(client.get('/api/users/me/').status_code, 401)
+
 
 class CurrentUserAccountTests(TestCase):
     def setUp(self):

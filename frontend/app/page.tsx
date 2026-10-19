@@ -1,7 +1,9 @@
 'use client'
 import NavBar from './components/navbar/Navbar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import SideBar from './components/sidebar/Sidebar';
+import { getCurrentUser } from './components/Lib/userAPI';
+import type { UserProfileData } from './components/userModel';
 
 import dynamic from 'next/dynamic';
 
@@ -24,6 +26,28 @@ export default function Home() {
   const [search, setSearch] = useState('');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserProfileData | null>(null);
+  const [sessionError, setSessionError] = useState('');
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    getCurrentUser()
+      .then((user) => {
+        if (isCurrent) setCurrentUser(user);
+      })
+      .catch((error: unknown) => {
+        if (isCurrent) {
+          setSessionError(
+            error instanceof Error ? error.message : 'Could not check your sign-in status.',
+          );
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   return (
     <main
@@ -37,11 +61,27 @@ export default function Home() {
           loginChange={setSidebarOpen}
           currentSidebarState={isSidebarOpen}
           isDarkMode={isDarkMode}
-          onDarkModeChange={setIsDarkMode}
+          username={currentUser?.username ?? null}
+          profilePicture={currentUser?.profile_picture ?? null}
         />
       </header>
-      <SideBar isOpen={isSidebarOpen} />
-      <ConcertMap isDarkMode={isDarkMode} />
+      <SideBar
+        isOpen={isSidebarOpen}
+        isDarkMode={isDarkMode}
+        onClose={() => setSidebarOpen(false)}
+        currentUser={currentUser}
+        onAuthenticated={(user) => {
+          setCurrentUser(user);
+          setSessionError('');
+        }}
+        onLoggedOut={() => setCurrentUser(null)}
+        sessionError={sessionError}
+      />
+      <ConcertMap
+        isDarkMode={isDarkMode}
+        onDarkModeChange={setIsDarkMode}
+        isSidebarOpen={isSidebarOpen}
+      />
     </main>
   );
 }

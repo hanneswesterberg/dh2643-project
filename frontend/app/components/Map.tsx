@@ -134,9 +134,15 @@ function groupEventsByVenue(events: Event[]): VenueGroup[] {
 
 interface ConcertMapProps {
   isDarkMode: boolean;
+  onDarkModeChange: (isDarkMode: boolean) => void;
+  isSidebarOpen: boolean;
 }
 
-export default function ConcertMap({ isDarkMode: initialIsDarkMode }: ConcertMapProps) {
+export default function ConcertMap({
+  isDarkMode,
+  onDarkModeChange,
+  isSidebarOpen,
+}: ConcertMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<OLMap | null>(null);
   const basemapLayerRef = useRef<TileLayer<StadiaMaps> | null>(null);
@@ -158,8 +164,7 @@ export default function ConcertMap({ isDarkMode: initialIsDarkMode }: ConcertMap
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [popupElement, setPopupElement] = useState<HTMLDivElement | null>(null);
-  const isDarkModeRef = useRef(initialIsDarkMode);
-  const [isDarkMode, setIsDarkMode] = useState(initialIsDarkMode);
+  const isDarkModeRef = useRef(isDarkMode);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
@@ -478,15 +483,15 @@ export default function ConcertMap({ isDarkMode: initialIsDarkMode }: ConcertMap
         aria-checked={isDarkMode}
         aria-label="Dark mode"
         title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-        onClick={() => setIsDarkMode((enabled) => !enabled)}
+        onClick={() => onDarkModeChange(!isDarkMode)}
         style={{
           position: 'absolute',
           top: '16px',
-          right: '16px',
+          right: isSidebarOpen ? '336px' : '16px',
           zIndex: 1000,
+          transition: 'right 300ms ease',
         }}
-        className="theme-toggle"
-        data-checked={isDarkMode}
+        className={`theme-toggle${isDarkMode ? ' theme-toggle--checked' : ''}`}
       >
         <span className="theme-toggle__thumb" aria-hidden="true">
           {isDarkMode ? (

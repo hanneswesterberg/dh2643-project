@@ -42,11 +42,13 @@ export async function logIn(username: string, password: string) {
 
 export async function signUp(
     username: string,
+    email: string,
     password: string,
 ) {
     const form = new FormData();
 
     form.append("username", username);
+    form.append("email", email);
     form.append("password", password);
 
     const response = await fetch(
@@ -73,7 +75,11 @@ export async function logOut() {
             headers: await getCSRFHeader(),
         }
     )
-    return await response.json()
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.error ?? "Could not log out.");
+    }
+    return data;
 }
 
 export async function removeSavedEvent(eventId: string) {
@@ -111,7 +117,7 @@ export async function getSavedEvents() {
     return data;
 }
 
-export async function loadProfile() {
+export async function getCurrentUser(): Promise<UserProfileData | null> {
     const response = await fetch(
         `${API}/me/`,
         {
@@ -120,11 +126,22 @@ export async function loadProfile() {
         }
     );
 
+    if (response.status === 401) {
+        return null;
+    }
     if (!response.ok) {
-        throw new Error(response.status === 401 ? "Sign in to view your profile." : "Could not load your profile.");
+        throw new Error("Could not check your sign-in status.");
     }
 
     return await response.json() as UserProfileData;
+}
+
+export async function loadProfile() {
+    const profile = await getCurrentUser();
+    if (!profile) {
+        throw new Error("Sign in to view your profile.");
+    }
+    return profile;
 }
 
 export async function saveEvent(
