@@ -101,6 +101,56 @@ class RegisterViewTests(TestCase):
         self.assertEqual(User.objects.filter(username='existing-user').count(), 1)
 
 
+class UsernameAvailabilityTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='profile-owner',
+            password='secure-password',
+        )
+        self.other_user = User.objects.create_user(
+            username='existing-user',
+            password='secure-password',
+        )
+        self.client.force_login(self.user)
+
+    def test_availability_excludes_current_user_and_detects_existing_names(self):
+        available_response = self.client.get(
+            '/api/users/check-username/',
+            {'username': 'profile-owner'},
+        )
+        taken_response = self.client.get(
+            '/api/users/check-username/',
+            {'username': 'existing-user'},
+        )
+
+        self.assertEqual(available_response.status_code, 200)
+        self.assertEqual(available_response.json(), {'available': True})
+        self.assertEqual(taken_response.status_code, 200)
+        self.assertEqual(taken_response.json(), {'available': False})
+
+    def test_availability_is_case_insensitive(self):
+        response = self.client.get(
+            '/api/users/check-username/',
+            {'username': 'EXISTING-USER'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'available': False})
+
+    def test_availability_requires_authentication_and_username(self):
+        self.client.logout()
+        unauthorized_response = self.client.get(
+            '/api/users/check-username/',
+            {'username': 'new-user'},
+        )
+        self.client.force_login(self.user)
+        invalid_response = self.client.get('/api/users/check-username/')
+
+        self.assertEqual(unauthorized_response.status_code, 401)
+        self.assertEqual(invalid_response.status_code, 400)
+
+
 class LoginViewTests(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -228,6 +278,7 @@ class CurrentUserAccountTests(TestCase):
                 'email': 'updated@example.com',
                 'display_name': '',
                 'profile_picture': '',
+                'profile_picture_original': '',
                 'bio': '',
                 'location': '',
                 'website': '',
@@ -351,6 +402,49 @@ class CurrentUserAccountTests(TestCase):
             picture_url = json.loads(response.content)['profile_picture']
             self.assertIn('/media/profile_pictures/', picture_url)
             self.assertEqual(urlsplit(picture_url).path, profile.profile_picture_image.url)
+
+    def test_profile_picture_upload_persists_original_for_future_recropping(self):
+        self.client.force_login(self.user)
+        crop_bytes = BytesIO()
+        Image.new('RGB', (512, 512), color='blue').save(crop_bytes, format='JPEG')
+        original_bytes = BytesIO()
+        Image.new('RGB', (1200, 800), color='red').save(original_bytes, format='PNG')
+        crop_upload = SimpleUploadedFile(
+            'avatar.jpg',
+            crop_bytes.getvalue(),
+            content_type='image/jpeg',
+        )
+        original_upload = SimpleUploadedFile(
+            'avatar-original.png',
+            original_bytes.getvalue(),
+            content_type='image/png',
+        )
+
+        response = self.client.patch(
+            '/api/users/me/',
+            {
+                'profile_picture': crop_upload,
+                'profile_picture_original': original_upload,
+            },
+            format='multipart',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        profile = UserProfile.objects.get(user=self.user)
+        self.assertEqual(
+            Path(self.media_directory.name, profile.profile_picture_image.name).read_bytes(),
+            crop_bytes.getvalue(),
+        )
+        self.assertEqual(
+            Path(self.media_directory.name, profile.profile_picture_original_image.name).read_bytes(),
+            original_bytes.getvalue(),
+        )
+        data = json.loads(response.content)
+        self.assertEqual(urlsplit(data['profile_picture']).path, profile.profile_picture_image.url)
+        self.assertEqual(
+            urlsplit(data['profile_picture_original']).path,
+            profile.profile_picture_original_image.url,
+        )
 
     def test_profile_picture_upload_rejects_files_over_2mb(self):
         self.client.force_login(self.user)

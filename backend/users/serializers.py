@@ -144,10 +144,21 @@ class ProfilePictureField(serializers.Field):
         }
 
 
+class ProfilePictureOriginalField(serializers.ImageField):
+    def to_representation(self, value):
+        return super().to_representation(value) or ''
+
+
 class UserAccountSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False, trim_whitespace=False)
     display_name = serializers.CharField(source='profile.display_name', required=False, allow_blank=True)
     profile_picture = ProfilePictureField(source='profile', required=False)
+    profile_picture_original = ProfilePictureOriginalField(
+        source='profile.profile_picture_original_image',
+        required=False,
+        allow_null=True,
+        validators=[validate_profile_picture_image],
+    )
     bio = RichBioField(source='profile.bio', required=False, allow_blank=True)
     location = serializers.CharField(source='profile.location', required=False, allow_blank=True, max_length=100)
     website = serializers.URLField(
@@ -165,6 +176,7 @@ class UserAccountSerializer(serializers.ModelSerializer):
             'password',
             'display_name',
             'profile_picture',
+            'profile_picture_original',
             'bio',
             'location',
             'website',
@@ -193,9 +205,17 @@ class UserAccountSerializer(serializers.ModelSerializer):
         if profile_data:
             profile, _ = UserProfile.objects.get_or_create(user=instance)
             old_picture = profile.profile_picture_image
+            old_original_picture = profile.profile_picture_original_image
+            if 'profile_picture_image' in profile_data and 'profile_picture_original_image' not in profile_data:
+                profile_data['profile_picture_original_image'] = None
             for field, value in profile_data.items():
                 setattr(profile, field, value)
             profile.save()
             if old_picture and old_picture.name != profile.profile_picture_image.name:
                 old_picture.delete(save=False)
+            if (
+                old_original_picture
+                and old_original_picture.name != profile.profile_picture_original_image.name
+            ):
+                old_original_picture.delete(save=False)
         return instance

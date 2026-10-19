@@ -41,6 +41,79 @@ body {
   color: #f9fafb;
 }
 
+.profile-page {
+  min-height: 100vh;
+  background: #ffffff;
+  color: #171717;
+  transition: background-color 220ms ease, color 220ms ease;
+}
+
+.profile-page[data-theme='dark'] {
+  background: #111827;
+  color: #f9fafb;
+}
+
+.profile-page[data-theme='dark'] .profile-content input,
+.profile-page[data-theme='dark'] .profile-content [contenteditable='true'] {
+  border-color: #4b5563;
+  background-color: #1f2937;
+  color: #f9fafb;
+}
+
+.profile-page[data-theme='dark'] .profile-content input:disabled {
+  background-color: #374151;
+  color: #d1d5db;
+}
+
+.profile-page[data-theme='dark'] .profile-content input[class*='bg-green-50'] {
+  border-color: #4ade80;
+  background-color: #14532d;
+}
+
+.profile-page[data-theme='dark'] .profile-content input[class*='bg-red-50'] {
+  border-color: #f87171;
+  background-color: #7f1d1d;
+}
+
+.profile-page[data-theme='dark'] .profile-content input::file-selector-button {
+  border-color: #9ca3af;
+  background-color: #374151;
+  color: #f9fafb;
+}
+
+.profile-page[data-theme='dark'] .profile-content button:not(.bg-blue-600) {
+  border-color: #6b7280;
+  background-color: #374151;
+  color: #f9fafb;
+}
+
+.profile-page[data-theme='dark'] .profile-content button:not(.bg-blue-600):hover {
+  background-color: #4b5563;
+}
+
+.profile-page[data-theme='dark'] .profile-content .text-gray-600 {
+  color: #d1d5db;
+}
+
+.profile-page[data-theme='dark'] .profile-crop-dialog {
+  border: 1px solid #4b5563;
+  background-color: #1f2937;
+  color: #f9fafb;
+}
+
+.profile-page[data-theme='dark'] .profile-crop-dialog .text-gray-600 {
+  color: #d1d5db;
+}
+
+.profile-page[data-theme='dark'] .profile-crop-dialog .bg-gray-300 {
+  background-color: #374151;
+  color: #f9fafb;
+}
+
+.profile-page[data-theme='dark'] .profile-crop-dialog .bg-gray-300:hover {
+  background-color: #4b5563;
+}
+
 .sidebar-close:hover {
   background-color: #f3f4f6;
 }
