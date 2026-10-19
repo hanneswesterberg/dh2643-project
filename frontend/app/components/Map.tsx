@@ -376,7 +376,11 @@ export default function ConcertMap({
     setPopupElement(overlayElement);
 
     const basemapLayer = new TileLayer({
-      source: new StadiaMaps({ layer: 'alidade_smooth' }),
+      source: new StadiaMaps({ 
+        layer: 'alidade_smooth',
+        apiKey: process.env.NEXT_PUBLIC_STADIA_API_KEY,
+       }),
+      
     });
     basemapLayerRef.current = basemapLayer;
 
