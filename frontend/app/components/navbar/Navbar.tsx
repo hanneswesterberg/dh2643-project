@@ -9,6 +9,7 @@ interface FullNavbarProps {
   logoOnly?: false;
   search: string;
   onSearchChange: (value: string) => void;
+interface NavbarProps {
   loginChange: (state: boolean) => void;
   currentSidebarState: boolean;
   isDarkMode: boolean;
@@ -80,6 +81,13 @@ const Navbar = (props: NavbarProps) => {
     profilePicture,
   } = props;
 
+const Navbar = ({
+  loginChange,
+  currentSidebarState,
+  isDarkMode,
+  username,
+  profilePicture,
+}: NavbarProps) => {
   function handleLogin(): void {
     loginChange(!currentSidebarState);
   }

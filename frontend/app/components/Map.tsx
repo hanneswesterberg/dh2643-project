@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import MapFilterBox from './MapFilterBox';
 import { createPortal } from 'react-dom';
 import 'ol/ol.css';
@@ -156,6 +157,7 @@ export default function ConcertMap({
   const popupRef = useRef<Overlay | null>(null);
   const markerSourceRef = useRef<VectorSource<Feature<Point>> | null>(null);
   const markerFeaturesRef = useRef<Feature<Point>[]>([]);
+  const hoveredFeatureRef = useRef<Feature | null>(null);
   const eventsRef = useRef<EventFeatureCollection | null>(null);
   const venuesRef = useRef<Map<string, VenueGroup>>(new Map());
   const selectedEventRef =
@@ -165,6 +167,7 @@ export default function ConcertMap({
   const [selectedEvent, setSelectedEvent] =
     useState<EventFeatureCollection['features'][number] | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<VenueGroup | null>(null);
+  const [animateWheelEvents, setAnimateWheelEvents] = useState(false);
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [venueEventsPage, setVenueEventsPage] = useState(0);
   const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
@@ -181,7 +184,18 @@ export default function ConcertMap({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
+  const clearSelection = () => {
+    popupRef.current?.setPosition(undefined);
+    selectedEventRef.current = null;
+    selectedVenueRef.current = null;
+    setAnimateWheelEvents(false);
+    setSelectedEvent(null);
+    setSelectedVenue(null);
+    setSelectedStage(null);
+  };
+
   const handleToggleGenre = (genre: string) => {
+    clearSelection();
     setSelectedGenres((prev) =>
       prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]
     );
@@ -317,9 +331,10 @@ export default function ConcertMap({
       source: clusterSource,
       style: (feature) => {
         const clusterSize = Number(feature.get('clusterSize') ?? 1);
+        const hoverScale = Number(feature.get('hoverScale') ?? 1);
         const markerStyle = new Style({
           image: new CircleStyle({
-            radius: clusterSize > 1 ? 14 : 11,
+            radius: (clusterSize > 1 ? 14 : 11) * hoverScale,
             fill: new Fill({
               color: getMarkerColor(isDarkModeRef.current),
             }),
@@ -336,7 +351,8 @@ export default function ConcertMap({
 
         if (clusterSize <= 1) return markerStyle;
 
-        const haloRadius = Math.min(40, 24 + Math.sqrt(clusterSize - 1) * 5);
+        const haloRadius =
+          Math.min(40, 24 + Math.sqrt(clusterSize - 1) * 5) * hoverScale;
         const haloColor = isDarkModeRef.current
           ? 'rgba(255, 132, 0, 0.2)'
           : 'rgba(37, 99, 235, 0.2)';
@@ -393,12 +409,60 @@ export default function ConcertMap({
     mapInstanceRef.current = map;
 
     const target = mapRef.current;
-    const handlePointerMove = (event: { pixel: number[] }) => {
-      const isMarkerHovered = map.hasFeatureAtPixel(event.pixel, {
-        layerFilter: (layer) => layer === eventsLayer,
-      });
+    const scaleAnimations = new Map<
+      Feature,
+      { from: number; to: number; startedAt: number }
+    >();
+    let animationFrame: number | null = null;
 
-      target.style.cursor = isMarkerHovered ? 'pointer' : '';
+    const animateScales = (timestamp: number) => {
+      for (const [feature, animation] of scaleAnimations) {
+        const progress = Math.min((timestamp - animation.startedAt) / 180, 1);
+        const easedProgress = 1 - (1 - progress) ** 3;
+        feature.set(
+          'hoverScale',
+          animation.from + (animation.to - animation.from) * easedProgress
+        );
+        if (progress === 1) scaleAnimations.delete(feature);
+      }
+
+      eventsLayer.changed();
+      animationFrame = scaleAnimations.size > 0
+        ? requestAnimationFrame(animateScales)
+        : null;
+    };
+
+    const animateFeatureScale = (feature: Feature | null, scale: number) => {
+      if (!feature) return;
+
+      const currentScale = Number(feature.get('hoverScale') ?? 1);
+      if (currentScale === scale) return;
+
+      scaleAnimations.set(feature, {
+        from: currentScale,
+        to: scale,
+        startedAt: performance.now(),
+      });
+      if (animationFrame === null) {
+        animationFrame = requestAnimationFrame(animateScales);
+      }
+    };
+
+    const handlePointerMove = (event: { pixel: number[] }) => {
+      const hoveredFeature =
+        map.forEachFeatureAtPixel(
+          event.pixel,
+          (feature) => (feature instanceof Feature ? feature : null),
+          { layerFilter: (layer) => layer === eventsLayer }
+        ) ?? null;
+
+      if (hoveredFeatureRef.current !== hoveredFeature) {
+        animateFeatureScale(hoveredFeatureRef.current, 1);
+        hoveredFeatureRef.current = hoveredFeature;
+        animateFeatureScale(hoveredFeatureRef.current, 1.5);
+      }
+
+      target.style.cursor = hoveredFeature ? 'pointer' : '';
     };
     map.on('pointermove', handlePointerMove);
 
@@ -460,6 +524,7 @@ export default function ConcertMap({
       }
 
       selectedVenueRef.current = venue;
+      setAnimateWheelEvents(venue.events.length > 1);
       setSelectedVenue(venue);
       setSelectedStage(null);
       setVenueEventsPage(0);
@@ -481,6 +546,8 @@ export default function ConcertMap({
 
     const handlePointerLeave = () => {
       target.style.cursor = '';
+      animateFeatureScale(hoveredFeatureRef.current, 1);
+      hoveredFeatureRef.current = null;
     };
     target.addEventListener('pointerleave', handlePointerLeave);
 
@@ -488,11 +555,14 @@ export default function ConcertMap({
       map.un('pointermove', handlePointerMove);
       map.un('singleclick', handleMapClick);
       target.removeEventListener('pointerleave', handlePointerLeave);
+      if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+      scaleAnimations.clear();
       mapInstanceRef.current = null;
       basemapLayerRef.current = null;
       popupRef.current = null;
       markerSourceRef.current = null;
       markerFeaturesRef.current = [];
+      hoveredFeatureRef.current = null;
       clusterSource.setSource(null);
       setPopupElement(null);
       map.setTarget(undefined);
@@ -549,34 +619,26 @@ export default function ConcertMap({
   }, [events, selectedGenres, startDate, endDate]);
 
   useEffect(() => {
-  if (!events) return;
+    if (!events) return;
 
-  // Close any open popup when filters change so stale popups don't linger
-  popupRef.current?.setPosition(undefined);
-  selectedEventRef.current = null;
-  selectedVenueRef.current = null;
-  setSelectedEvent(null);
-  setSelectedVenue(null);
-  setSelectedStage(null);
+    const venues = groupEventsByVenue(filteredFeatures);
+    venuesRef.current = new Map(venues.map((venue) => [venue.key, venue]));
+    const markerFeatures = venues.map(
+      (venue) =>
+        new Feature({
+          geometry: new Point(fromLonLat(venue.coordinates)),
+          venueKey: venue.key,
+          eventCount: venue.events.length,
+        })
+    );
+    markerFeaturesRef.current = markerFeatures;
 
-  const venues = groupEventsByVenue(filteredFeatures);
-  venuesRef.current = new Map(venues.map((venue) => [venue.key, venue]));
-  const markerFeatures = venues.map(
-    (venue) =>
-      new Feature({
-        geometry: new Point(fromLonLat(venue.coordinates)),
-        venueKey: venue.key,
-        eventCount: venue.events.length,
-      })
-  );
-  markerFeaturesRef.current = markerFeatures;
+    const markerSource = markerSourceRef.current;
+    if (!markerSource) return;
 
-  const markerSource = markerSourceRef.current;
-  if (!markerSource) return;
-
-  markerSource.clear(true);
-  markerSource.addFeatures(markerFeatures);
-}, [events, filteredFeatures]);
+    markerSource.clear(true);
+    markerSource.addFeatures(markerFeatures);
+  }, [events, filteredFeatures]);
 
   return (
     <div
@@ -604,10 +666,17 @@ export default function ConcertMap({
         selectedGenres={selectedGenres}
         onToggleGenre={handleToggleGenre}
         startDate={startDate}
-        onStartDateChange={setStartDate}
+        onStartDateChange={(date) => {
+          clearSelection();
+          setStartDate(date);
+        }}
         endDate={endDate}
-        onEndDateChange={setEndDate}
+        onEndDateChange={(date) => {
+          clearSelection();
+          setEndDate(date);
+        }}
         onReset={() => {
+          clearSelection();
           setSelectedGenres([]);
           setStartDate('');
           setEndDate('');
@@ -697,16 +766,16 @@ export default function ConcertMap({
                     pointerEvents: 'auto',
                   }
                 : {
-                    minWidth: '220px',
-                    maxWidth: '320px',
+                    minWidth: '240px',
+                    maxWidth: '360px',
                     maxHeight: 'min(70vh, 480px)',
                     overflowY: 'auto',
-                    padding: '12px 14px',
+                    padding: '16px 18px',
                     borderRadius: '8px',
                     background: isDarkMode ? '#1f2937' : 'white',
                     boxShadow: '0 2px 12px rgba(0, 0, 0, 0.25)',
                     color: isDarkMode ? '#f9fafb' : '#171717',
-                    fontSize: '14px',
+                    fontSize: '15px',
                     pointerEvents: 'auto',
                   }
             }
@@ -884,7 +953,7 @@ export default function ConcertMap({
                         artists.length > 0 ? artists.join(' & ') : 'Event';
 
                       return (
-                        <button
+                        <motion.button
                           key={event.id}
                           type="button"
                           aria-label={`View ${event.properties.name}, ${new Date(
@@ -892,18 +961,44 @@ export default function ConcertMap({
                           ).toLocaleString()}`}
                           title={event.properties.name}
                           onClick={() => {
+                            setAnimateWheelEvents(false);
                             selectedEventRef.current = event;
                             setSelectedEvent(event);
                           }}
+                          initial={
+                            animateWheelEvents
+                              ? {
+                                  left: '50%',
+                                  top: '50%',
+                                  opacity: 0,
+                                  scale: 0.55,
+                                }
+                              : false
+                          }
+                          animate={{
+                            left: `${x}%`,
+                            top: `${y}%`,
+                            opacity: 1,
+                            scale: 1,
+                          }}
+                          transition={{
+                            type: 'spring',
+                            stiffness: 260,
+                            damping: 22,
+                            delay: index * 0.035,
+                          }}
+                          onAnimationComplete={() => {
+                            if (index === pageEvents.length - 1) {
+                              setAnimateWheelEvents(false);
+                            }
+                          }}
                           style={{
                             position: 'absolute',
-                            top: `${y}%`,
-                            left: `${x}%`,
                             display: 'grid',
                             width: '68px',
                             height: '68px',
                             placeItems: 'center',
-                            transform: 'translate(-50%, -50%)',
+                            translate: '-50% -50%',
                             padding: '6px',
                             border: '3px solid white',
                             borderRadius: '50%',
@@ -931,7 +1026,7 @@ export default function ConcertMap({
                           >
                             {artistLabel}
                           </span>
-                        </button>
+                        </motion.button>
                       );
                     })}
                   </div>
@@ -958,6 +1053,7 @@ export default function ConcertMap({
                         aria-label={`Choose stage at ${selectedVenue.name}`}
                         value={selectedStage ?? ''}
                         onChange={(change) => {
+                          setAnimateWheelEvents(false);
                           setSelectedStage(change.target.value || null);
                           setVenueEventsPage(0);
                         }}
@@ -985,6 +1081,7 @@ export default function ConcertMap({
                       popupRef.current?.setPosition(undefined);
                       selectedEventRef.current = null;
                       selectedVenueRef.current = null;
+                      setAnimateWheelEvents(false);
                       setSelectedEvent(null);
                       setSelectedVenue(null);
                       setSelectedStage(null);
@@ -1047,9 +1144,10 @@ export default function ConcertMap({
                         type="button"
                         aria-label="Previous events"
                         disabled={venueEventsPage === 0}
-                        onClick={() =>
+                        onClick={() => {
+                          setAnimateWheelEvents(false);
                           setVenueEventsPage((page) => Math.max(0, page - 1))
-                        }
+                        }}
                         style={{
                           border: 0,
                           borderRadius: '50%',
@@ -1080,11 +1178,12 @@ export default function ConcertMap({
                         type="button"
                         aria-label="Next events"
                         disabled={venueEventsPage === pageCount - 1}
-                        onClick={() =>
+                        onClick={() => {
+                          setAnimateWheelEvents(false);
                           setVenueEventsPage((page) =>
                             Math.min(pageCount - 1, page + 1)
                           )
-                        }
+                        }}
                         style={{
                           border: 0,
                           borderRadius: '50%',
