@@ -92,7 +92,7 @@ export default function SideBar({
     <div
       aria-hidden={!isOpen}
       inert={!isOpen}
-      className="sidebar-panel fixed right-0 top-[82px] z-[1100] h-[calc(100vh-82px)] overflow-hidden"
+      className="sidebar-panel fixed right-0 top-[80px] z-[1100] h-[calc(100vh-80px)] overflow-hidden"
       style={{
         width: isOpen ? '320px' : '0px',
         transition: 'width 300ms ease, background-color 300ms ease, color 300ms ease, box-shadow 300ms ease',
@@ -104,26 +104,88 @@ export default function SideBar({
       }}
     >
       <div className="w-80 p-6">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 id="sign-in-heading" className="text-xl font-semibold">
-            {currentUser ? (
-              <Link href="/profile" className="underline hover:opacity-80">
-                {currentUser.username}
-              </Link>
-            ) : isRegistering ? 'Create account' : 'Sign in'}
-          </h2>
+        <div className={`${currentUser ? 'mb-2' : 'mb-6'} flex items-center justify-between`}>
+          {!currentUser && (
+            <h2 id="sign-in-heading" className="text-xl font-semibold">
+              {isRegistering ? 'Create account' : 'Sign in'}
+            </h2>
+          )}
           <button
             type="button"
             onClick={onClose}
             aria-label="Close sign-in panel"
-            className="sidebar-close rounded px-2 py-1 text-2xl leading-none"
+            className={`sidebar-close rounded px-2 py-1 text-2xl leading-none ${currentUser ? 'ml-auto' : ''}`}
           >
             &times;
           </button>
         </div>
         {currentUser ? (
           <div className="space-y-4">
-            <p>Signed in as {currentUser.username}.</p>
+            <div className="flex flex-col items-start gap-[20px] text-left">
+              <Link
+                href="/profile"
+                aria-label="Open Profile Settings"
+                className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+              >
+                {currentUser.profile_picture ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={currentUser.profile_picture}
+                      alt=""
+                      className="h-[150px] w-[150px] object-cover"
+                    />
+                  </>
+                ) : (
+                  <div className="grid h-[150px] w-[150px] place-items-center bg-[#fbbf24] text-[#171717]">
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="84"
+                      height="84"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                  </div>
+                )}
+              </Link>
+              <div className="space-y-1">
+                {currentUser.display_name && (
+                  <p className="text-xl font-semibold">{currentUser.display_name}</p>
+                )}
+                <p className={currentUser.display_name ? 'text-sm' : 'text-xl font-semibold'}>
+                  @{currentUser.username}
+                </p>
+              </div>
+              {currentUser.bio && (
+                <div
+                  className="w-full rounded border p-3 text-sm"
+                  style={{
+                    borderColor: isDarkMode ? '#4b5563' : '#d1d5db',
+                    backgroundColor: isDarkMode ? '#111827' : '#f9fafb',
+                  }}
+                >
+                  <div
+                    className="break-words"
+                    dangerouslySetInnerHTML={{ __html: currentUser.bio }}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="text-center">
+              <Link
+                href="/profile"
+                className="block w-full rounded bg-blue-600 px-4 py-2 text-center font-semibold text-white hover:bg-blue-700"
+              >
+                Profile Settings
+              </Link>
+            </div>
             {error && <p role="alert">{error}</p>}
             {notice && <p role="status">{notice}</p>}
             <button

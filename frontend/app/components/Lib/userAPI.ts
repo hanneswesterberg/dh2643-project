@@ -166,15 +166,23 @@ export async function saveEvent(
 }
 
 export async function updateProfile(
+    username: string,
+    displayName: string,
     email: string,
     picture: File | null,
-    bio: string
+    originalPicture: File | null,
+    bio: string,
 ) {
     const form = new FormData();
 
+    form.append("username", username);
+    form.append("display_name", displayName);
     form.append("email", email);
     if (picture) {
         form.append("profile_picture", picture);
+    }
+    if (originalPicture) {
+        form.append("profile_picture_original", originalPicture);
     }
     form.append("bio", bio);
 
@@ -194,6 +202,45 @@ export async function updateProfile(
         throw new Error(message || "Could not save your profile.");
     }
     return data;
+}
+
+export async function updatePassword(password: string) {
+    const form = new FormData();
+    form.append("password", password);
+
+    const response = await fetch(`${API}/me/`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: await getCSRFHeader(),
+        body: form,
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        const message = Object.values(data).flat().join(" ");
+        throw new Error(message || "Could not update your password.");
+    }
+    return data;
+}
+
+export async function checkUsernameAvailability(
+    username: string,
+    signal: AbortSignal,
+): Promise<boolean> {
+    const response = await fetch(
+        `${API}/check-username/?username=${encodeURIComponent(username)}`,
+        {
+            credentials: "include",
+            signal,
+        },
+    );
+    const data = await response.json();
+    if (!response.ok) {
+        throw new Error(data.error ?? "Could not check username availability.");
+    }
+    if (typeof data.available !== "boolean") {
+        throw new Error("The username availability response was invalid.");
+    }
+    return data.available;
 }
 
 export async function searchGlobal(query: string) {

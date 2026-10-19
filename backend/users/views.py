@@ -46,6 +46,24 @@ class RegisterView(APIView):
         return Response({"message": "User registered successfully"}, status=status.HTTP_201_CREATED)
 
 
+class UsernameAvailabilityView(APIView):
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return Response({"error": "Not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        username = request.query_params.get('username', '').strip()
+        if not username:
+            return Response({"error": "A username is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        matching_users = User.objects.filter(username__iexact=username)
+        if request.user.is_authenticated:
+            matching_users = matching_users.exclude(pk=request.user.pk)
+        return Response(
+            {"available": not matching_users.exists()},
+            status=status.HTTP_200_OK,
+        )
+
+
 class CurrentUserView(APIView):
     def get(self, request):
         if request.user.is_authenticated:
