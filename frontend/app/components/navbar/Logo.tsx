@@ -8,8 +8,8 @@ const Logo: React.FC = () => {
       <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
         {/* Assuming logo.jpg is in the public/logo directory */}
         <Image 
-          src="/logo/logo.jpg" 
-          alt="TakeMeOut Logo"
+          src="/DH2643LOGOV1.svg" 
+          alt="Home"
           width={100} // Adjust width as needed
           height={50} // Adjust height as needed
           objectFit="contain" // Adjust as needed for logo
