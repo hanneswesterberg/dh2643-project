@@ -194,6 +194,16 @@ export default function ConcertMap({
     setSelectedStage(null);
   };
 
+  const clearSelection = () => {
+    popupRef.current?.setPosition(undefined);
+    selectedEventRef.current = null;
+    selectedVenueRef.current = null;
+    setAnimateWheelEvents(false);
+    setSelectedEvent(null);
+    setSelectedVenue(null);
+    setSelectedStage(null);
+  };
+
   const handleToggleGenre = (genre: string) => {
     clearSelection();
     setSelectedGenres((prev) =>
