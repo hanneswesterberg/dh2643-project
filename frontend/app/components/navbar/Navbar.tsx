@@ -100,7 +100,7 @@ const Navbar = (props: NavbarProps) => {
         <Logo isDarkMode={isDarkMode} />
       </div>
 
-      <SearchBar value={search} onChange={onSearchChange} isDarkMode={isDarkMode} />
+      <SearchBar isDarkMode={isDarkMode} />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <Login

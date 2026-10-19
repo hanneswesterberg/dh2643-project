@@ -71,7 +71,7 @@ export default function Home() {
         isDarkMode={isDarkMode}
         onClose={() => setSidebarOpen(false)}
         currentUser={currentUser}
-        onAuthenticated={(user) => {
+        onAuthenticated={(user: any) => {
           setCurrentUser(user);
           setSessionError('');
         }}
