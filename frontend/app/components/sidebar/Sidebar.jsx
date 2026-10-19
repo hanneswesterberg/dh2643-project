@@ -163,6 +163,20 @@ export default function SideBar({
                   @{currentUser.username}
                 </p>
               </div>
+              {currentUser.bio && (
+                <div
+                  className="w-full rounded border p-3 text-sm"
+                  style={{
+                    borderColor: isDarkMode ? '#4b5563' : '#d1d5db',
+                    backgroundColor: isDarkMode ? '#111827' : '#f9fafb',
+                  }}
+                >
+                  <div
+                    className="break-words"
+                    dangerouslySetInnerHTML={{ __html: currentUser.bio }}
+                  />
+                </div>
+              )}
             </div>
             <div className="text-center">
               <Link
