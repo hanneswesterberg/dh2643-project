@@ -35,8 +35,6 @@ export default function SearchBar({ isDarkMode = false }: SearchBarProps) {
 
   useEffect(() => {
     if (term.trim().length < 2) {
-      setResults(null);
-      setIsOpen(false);
       return;
     }
 
@@ -52,6 +50,14 @@ export default function SearchBar({ isDarkMode = false }: SearchBarProps) {
 
     return () => clearTimeout(delayDebounceFn);
   }, [term]);
+
+  const handleTermChange = (value: string) => {
+    setTerm(value);
+    if (value.trim().length < 2) {
+      setResults(null);
+      setIsOpen(false);
+    }
+  };
 
   const handleSelect = (name: string) => {
     setTerm(name);
@@ -81,7 +87,7 @@ export default function SearchBar({ isDarkMode = false }: SearchBarProps) {
         <input
           type="text"
           value={term}
-          onChange={(e) => setTerm(e.target.value)}
+          onChange={(e) => handleTermChange(e.target.value)}
           onFocus={() => {
             if (results) setIsOpen(true);
           }}

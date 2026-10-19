@@ -5,8 +5,6 @@ import Logo from './Logo';
 import Login from './Login';
 
 interface NavbarProps {
-  search: string;
-  onSearchChange: (value: string) => void;
   loginChange: (state: boolean) => void;
   currentSidebarState: boolean;
   isDarkMode: boolean;
@@ -15,8 +13,6 @@ interface NavbarProps {
 }
 
 const Navbar = ({
-  search,
-  onSearchChange,
   loginChange,
   currentSidebarState,
   isDarkMode,
@@ -41,7 +37,7 @@ const Navbar = ({
         <Logo isDarkMode={isDarkMode} />
       </div>
 
-      <SearchBar value={search} onChange={onSearchChange} isDarkMode={isDarkMode} />
+      <SearchBar isDarkMode={isDarkMode} />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <Login

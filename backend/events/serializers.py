@@ -17,6 +17,15 @@ class EventSerializer(GeoFeatureModelSerializer):
     # Explicitly map the related venue's location to a local serializer field
     location = GeometryField(source='venue.location', read_only=True)
 
+    class Meta:
+        model = Event
+        # Point to the locally defined geometry field above, not the nested path
+        geo_field = "location"
+        fields = [
+            'id', 'tickster_id', 'name', 'start', 'end',
+            'ticket_url', 'image_url', 'venue_name', 'artists', 'genres'
+        ]
+
     def get_genres(self, event):
         return sorted(
             {
@@ -26,12 +35,3 @@ class EventSerializer(GeoFeatureModelSerializer):
             },
             key=str.casefold,
         )
-
-    class Meta:
-        model = Event
-        # Point to the locally defined geometry field above, not the nested path
-        geo_field = "location"
-        fields = [
-            'id', 'tickster_id', 'name', 'start', 'end', 
-            'ticket_url', 'image_url', 'venue_name', 'artists', 'genres'
-        ]
