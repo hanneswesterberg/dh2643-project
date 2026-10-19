@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/api/:path*',
-        destination: 'http://backend:8000/api/:path*', // Routes directly to Django
+        destination: 'http://backend:8000/api/:path*/', // Keep Django's APPEND_SLASH routes working for POST requests.
       },
       {
         source: '/media/:path*',

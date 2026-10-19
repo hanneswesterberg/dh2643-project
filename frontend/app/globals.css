@@ -41,6 +41,22 @@ body {
   color: #f9fafb;
 }
 
+.sidebar-close:hover {
+  background-color: #f3f4f6;
+}
+
+[data-theme='dark'] .sidebar-close:hover {
+  background-color: #374151;
+}
+
+.sidebar-mode-toggle:hover {
+  color: #4b5563;
+}
+
+[data-theme='dark'] .sidebar-mode-toggle:hover {
+  color: #d1d5db;
+}
+
 .theme-toggle {
   display: flex;
   align-items: center;
@@ -57,7 +73,7 @@ body {
     border-color 220ms ease;
 }
 
-.theme-toggle[data-checked='true'] {
+.theme-toggle--checked {
   border-color: #475569;
   background: #334155;
 }
@@ -82,7 +98,7 @@ body {
     color 220ms ease;
 }
 
-.theme-toggle[data-checked='true'] .theme-toggle__thumb {
+.theme-toggle--checked .theme-toggle__thumb {
   background: #0f172a;
   color: #f8fafc;
   transform: translateX(28px);
