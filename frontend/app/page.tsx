@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import SideBar from './components/sidebar/Sidebar';
 import { getCurrentUser } from './components/Lib/userAPI';
 import type { UserProfileData } from './components/userModel';
+import useThemePreference from './lib/useThemePreference';
 
 import dynamic from 'next/dynamic';
 
@@ -25,7 +26,7 @@ const ConcertMap = dynamic(
 export default function Home() {
   const [search, setSearch] = useState('');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useThemePreference();
   const [currentUser, setCurrentUser] = useState<UserProfileData | null>(null);
   const [sessionError, setSessionError] = useState('');
 

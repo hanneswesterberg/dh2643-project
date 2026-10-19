@@ -20,6 +20,9 @@ services:
     build: ./backend
     env_file:
       - .env
+    environment:
+      # The Django development server serves uploaded profile pictures in local Compose runs.
+      DEBUG: "True"
     volumes:
       - ./backend:/app
     ports:
