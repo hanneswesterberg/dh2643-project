@@ -44,7 +44,7 @@ const Navbar = (props: NavbarProps) => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Logo />
+          <Logo isDarkMode={isDarkMode} />
         </div>
         {props.title && (
           <h1

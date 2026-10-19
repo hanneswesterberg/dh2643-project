@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import UserProfile from '../components/Profile';
 import Navbar from '../components/navbar/Navbar';
+import useThemePreference from '../lib/useThemePreference';
 
 export default function ProfilePage() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useThemePreference();
 
   return (
     <main
