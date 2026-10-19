@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TakeMeOut",
-  description: "Consert event finder application.",
+  title: "Ballad",
+  description: "Concert event finder application.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
