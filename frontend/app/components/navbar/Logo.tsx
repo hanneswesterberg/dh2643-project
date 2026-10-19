@@ -14,9 +14,11 @@ const Logo = ({ isDarkMode }: LogoProps) => {
         <Image 
           src="/DH2643LOGOV1.svg" 
           alt="Home"
-          width={100} // Adjust width as needed
-          height={50} // Adjust height as needed
+          width={386}
+          height={100}
           style={{
+            width: 100,
+            height: 'auto',
             objectFit: "contain",
             filter: isDarkMode ? 'invert(1)' : 'none',
           }}

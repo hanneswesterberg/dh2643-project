@@ -12,7 +12,7 @@ export type EventProperties = {
   image_url: string;
   venue_name: string;
   artists: Artist[];
-  genres: string[];
+  genres: string;
 };
 
 export type EventGeometry = {

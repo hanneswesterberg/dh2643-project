@@ -40,7 +40,7 @@ class EventAPITests(APITestCase):
         first_feature = response.data['features'][0]
         self.assertEqual(first_feature['properties']['name'], 'Test Concert')
         self.assertEqual(first_feature['properties']['venue_name'], 'Test Venue')
-        self.assertEqual(first_feature['properties']['genres'], [])
+        self.assertEqual(first_feature['properties']['genres'], '')
 
     def test_get_events_includes_artist_genres(self):
         punk = Genre.objects.create(name='Punk')
@@ -61,5 +61,5 @@ class EventAPITests(APITestCase):
         )
         self.assertEqual(
             event['properties']['genres'],
-            ['Alternative rock', 'Punk'],
+            'Alternative rock, Punk',
         )

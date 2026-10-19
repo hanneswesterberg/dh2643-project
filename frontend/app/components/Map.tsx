@@ -41,7 +41,7 @@ type EventDetails = {
   imageUrl: string;
   venueName: string;
   artists: string[];
-  genres: string[];
+  genres: string;
 };
 
 type VenueGroup = {
@@ -81,6 +81,8 @@ function getEventGenres(event: Event): string[] {
   // Check top-level event.properties.genre or event.properties.genres
   if (Array.isArray(props.genres)) {
     props.genres.forEach(addGenreString);
+  } else if (typeof props.genres === 'string') {
+    addGenreString(props.genres);
   } else {
     addGenreString(props.genre);
   }
@@ -183,16 +185,6 @@ export default function ConcertMap({
   const [savingEventId, setSavingEventId] = useState<number | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
-
-  const clearSelection = () => {
-    popupRef.current?.setPosition(undefined);
-    selectedEventRef.current = null;
-    selectedVenueRef.current = null;
-    setAnimateWheelEvents(false);
-    setSelectedEvent(null);
-    setSelectedVenue(null);
-    setSelectedStage(null);
-  };
 
   const clearSelection = () => {
     popupRef.current?.setPosition(undefined);
@@ -847,8 +839,8 @@ export default function ConcertMap({
             </div>
             <div>
               Genres:{' '}
-              {eventDetails.genres.length > 0
-                ? eventDetails.genres.join(', ')
+              {eventDetails.genres
+                ? eventDetails.genres
                 : 'Unavailable'}
             </div>
             <div>Starts: {new Date(eventDetails.start).toLocaleString()}</div>

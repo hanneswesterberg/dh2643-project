@@ -22,7 +22,7 @@ export const mockEvents: EventFeatureCollection = {
           { id: 9001, name: 'The Northern Lights' },
           { id: 9002, name: 'Mira Sol' },
         ],
-        genres: ['Indie pop'],
+        genres: 'Indie pop',
       },
     },
     {
@@ -41,7 +41,7 @@ export const mockEvents: EventFeatureCollection = {
         image_url: '',
         venue_name: 'Fasching',
         artists: [{ id: 9003, name: 'Blue Hour Quartet' }],
-        genres: ['Jazz'],
+        genres: 'Jazz',
       },
     },
     {
@@ -60,7 +60,7 @@ export const mockEvents: EventFeatureCollection = {
         image_url: '',
         venue_name: 'Debaser',
         artists: [{ id: 9004, name: 'Static Bloom' }],
-        genres: ['Electronic'],
+        genres: 'Electronic',
       },
     },
     {
@@ -79,7 +79,7 @@ export const mockEvents: EventFeatureCollection = {
         image_url: '',
         venue_name: 'Södra Teatern',
         artists: [{ id: 9005, name: 'Elias June' }],
-        genres: ['Folk'],
+        genres: 'Folk',
       },
     },
     {
@@ -98,7 +98,7 @@ export const mockEvents: EventFeatureCollection = {
         image_url: '',
         venue_name: 'Brygghuset',
         artists: [{ id: 9006, name: 'Midnight Engine' }],
-        genres: ['Rock'],
+        genres: 'Rock',
       },
     },
     {
@@ -117,7 +117,7 @@ export const mockEvents: EventFeatureCollection = {
         image_url: '',
         venue_name: 'Debaser',
         artists: [{ id: 9007, name: 'Static Bloom' }],
-        genres: ['Indie rock'],
+        genres: 'Indie rock',
       },
     },
     {
@@ -136,7 +136,7 @@ export const mockEvents: EventFeatureCollection = {
         image_url: '',
         venue_name: 'Debaser',
         artists: [{ id: 9008, name: 'Echo Arcade' }],
-        genres: ['Electronic'],
+        genres: 'Electronic',
       },
     },
   ],
