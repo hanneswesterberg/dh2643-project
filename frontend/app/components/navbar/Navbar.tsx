@@ -38,7 +38,7 @@ const Navbar = ({
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <Logo />
+        <Logo isDarkMode={isDarkMode} />
       </div>
 
       <SearchBar value={search} onChange={onSearchChange} isDarkMode={isDarkMode} />

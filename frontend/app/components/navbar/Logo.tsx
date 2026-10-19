@@ -2,7 +2,11 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-const Logo: React.FC = () => {
+interface LogoProps{
+  isDarkMode: boolean;
+}
+
+const Logo = ({ isDarkMode }: LogoProps) => {
   return (
     <Link href="/" passHref>
       <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
@@ -12,7 +16,11 @@ const Logo: React.FC = () => {
           alt="Home"
           width={100} // Adjust width as needed
           height={50} // Adjust height as needed
-          objectFit="contain" // Adjust as needed for logo
+          style={{
+            objectFit: "contain",
+            filter: isDarkMode ? 'invert(1)' : 'none',
+          }}
+          
         />
       </div>
     </Link>
