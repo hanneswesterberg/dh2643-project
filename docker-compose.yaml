@@ -1,4 +1,3 @@
-
 services:
   db:
     image: postgis/postgis:15-3.4
@@ -21,8 +20,8 @@ services:
     env_file:
       - .env
     environment:
-      # The Django development server serves uploaded profile pictures in local Compose runs.
       DEBUG: "True"
+    command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./backend:/app
     ports:
@@ -30,10 +29,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    #command: tail -f /dev/null # Placeholder until Django is initialized
 
   frontend:
     build: ./frontend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      HOSTNAME: "0.0.0.0"
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -42,7 +43,6 @@ services:
       - "80:3000"
     depends_on:
       - backend
-    #command: tail -f /dev/null # Placeholder until Next.js is initialized
 
 volumes:
   pgdata:
