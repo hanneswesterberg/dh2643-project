@@ -1,4 +1,4 @@
-import { UserProfileData } from "../userModel";
+import { SavedEvent, UserProfileData } from "../userModel";
 
 const API = "/api/users";
 const EVENTS_API = "/api/events";
@@ -82,7 +82,7 @@ export async function logOut() {
     return data;
 }
 
-export async function removeSavedEvent(eventId: string) {
+export async function removeSavedEvent(eventId: number) {
     const response = await fetch(
         `${API}/saved-events/${eventId}/`,
         {
@@ -100,7 +100,7 @@ export async function removeSavedEvent(eventId: string) {
     return data;
 }
 
-export async function getSavedEvents() {
+export async function getSavedEvents(): Promise<SavedEvent[]> {
     const response = await fetch(
         `${API}/saved-events/`,
         {
@@ -114,7 +114,7 @@ export async function getSavedEvents() {
         throw new Error(data.error ?? "Could not load saved events");
     }
 
-    return data;
+    return data as SavedEvent[];
 }
 
 export async function getCurrentUser(): Promise<UserProfileData | null> {
@@ -144,9 +144,7 @@ export async function loadProfile() {
     return profile;
 }
 
-export async function saveEvent(
-    eventId: number | null
-) {
+export async function saveEvent(eventId: number) {
     const response = await fetch(
         `${API}/saved-events/${eventId}/`,
         {
@@ -159,7 +157,7 @@ export async function saveEvent(
     const data = await response.json()
 
     if (!response.ok) {
-        throw new Error(data.error ?? "Could not remove saved event");
+        throw new Error(data.error ?? "Could not save event");
     }
 
     return data;

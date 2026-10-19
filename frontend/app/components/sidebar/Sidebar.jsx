@@ -103,7 +103,7 @@ export default function SideBar({
           : '0 10px 25px rgba(0, 0, 0, 0.14)',
       }}
     >
-      <div className="w-80 p-6">
+      <div className="h-full w-80 overflow-y-auto p-6">
         <div className={`${currentUser ? 'mb-2' : 'mb-6'} flex items-center justify-between`}>
           {!currentUser && (
             <h2 id="sign-in-heading" className="text-xl font-semibold">
@@ -177,6 +177,14 @@ export default function SideBar({
                   />
                 </div>
               )}
+            </div>
+            <div className="text-center">
+              <Link
+                href="/profile/events"
+                className="block w-full rounded bg-blue-600 px-4 py-2 text-center font-semibold text-white hover:bg-blue-700"
+              >
+                Your Events
+              </Link>
             </div>
             <div className="text-center">
               <Link

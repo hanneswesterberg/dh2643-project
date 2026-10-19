@@ -25,6 +25,22 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+@media screen and (max-width: 600px) {
+  .saved-event-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .saved-event-actions {
+    width: 100%;
+  }
+
+  .saved-event-actions > * {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
 .navbar {
   transition:
     background-color 220ms ease,
@@ -153,6 +169,16 @@ body {
 
 .profile-page[data-theme='dark'] .profile-content .bg-blue-600:hover {
   background-color: var(--action-orange-hover);
+}
+
+.profile-page[data-theme='dark'] .profile-content .event-remove-button {
+  border-color: #ffffff;
+  background-color: transparent;
+  color: #ffffff;
+}
+
+.profile-page[data-theme='dark'] .profile-content .event-remove-button:hover {
+  background-color: rgb(255 255 255 / 10%);
 }
 
 .profile-page[data-theme='dark'] .profile-content [class*='bg-blue-600/60'] {
