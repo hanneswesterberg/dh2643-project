@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from 'react';
 import SearchBar from './SearchBar';
 import Logo from './Logo';
 import Login from './Login';
@@ -7,9 +8,6 @@ import ThemeToggle from '../ThemeToggle';
 
 interface FullNavbarProps {
   logoOnly?: false;
-  search: string;
-  onSearchChange: (value: string) => void;
-interface NavbarProps {
   loginChange: (state: boolean) => void;
   currentSidebarState: boolean;
   isDarkMode: boolean;
@@ -72,26 +70,6 @@ const Navbar = (props: NavbarProps) => {
     );
   }
 
-  const {
-    search,
-    onSearchChange,
-    loginChange,
-    currentSidebarState,
-    username,
-    profilePicture,
-  } = props;
-
-const Navbar = ({
-  loginChange,
-  currentSidebarState,
-  isDarkMode,
-  username,
-  profilePicture,
-}: NavbarProps) => {
-  function handleLogin(): void {
-    loginChange(!currentSidebarState);
-  }
-
   return (
     <nav
       className={`navbar ${isDarkMode ? 'navbar--dark' : 'navbar--light'}`}
@@ -108,13 +86,15 @@ const Navbar = ({
         <Logo isDarkMode={isDarkMode} />
       </div>
 
-      <SearchBar isDarkMode={isDarkMode} />
+      <Suspense fallback={<div className="w-full max-w-md" aria-hidden="true" />}>
+        <SearchBar isDarkMode={isDarkMode} />
+      </Suspense>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <Login
-          onLogin={handleLogin}
-          username={username}
-          profilePicture={profilePicture}
+          onLogin={() => props.loginChange(!props.currentSidebarState)}
+          username={props.username}
+          profilePicture={props.profilePicture}
         />
       </div>
     </nav>

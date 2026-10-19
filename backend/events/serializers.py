@@ -29,11 +29,10 @@ class EventSerializer(GeoFeatureModelSerializer):
 
     class Meta:
         model = Event
-        # Point to the locally defined geometry field above, not the nested path
         geo_field = "location"
         fields = [
             'id', 'tickster_id', 'name', 'start', 'end',
-            'ticket_url', 'image_url', 'venue_name', 'artists', 'genres'
+            'ticket_url', 'image_url', 'venue_name', 'artists', 'genres',
         ]
 
     def get_genres(self, event):
@@ -45,18 +44,6 @@ class EventSerializer(GeoFeatureModelSerializer):
             },
             key=str.casefold,
         )
-
-    class Meta:
-        model = Event
-        # Point to the locally defined geometry field above, not the nested path
-        geo_field = "location"
-        fields = [
-            'id', 'tickster_id', 'name', 'start', 'end', 
-            'ticket_url', 'image_url', 'venue_name', 'artists', 'genre'
-        ]
-
-    def get_genre(self, obj):
-        return serialize_event_genre(obj)
 
 
 class SavedEventSerializer(serializers.ModelSerializer):

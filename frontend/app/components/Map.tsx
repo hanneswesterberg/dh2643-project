@@ -203,6 +203,7 @@ export default function ConcertMap({
 
   const eventDetails: EventDetails | null = selectedEvent
     ? {
+        id: selectedEvent.id,
         name: selectedEvent.properties.name,
         start: selectedEvent.properties.start,
         end: selectedEvent.properties.end,

@@ -68,7 +68,6 @@ export default function Home() {
         isDarkMode={isDarkMode}
         onClose={() => setSidebarOpen(false)}
         currentUser={currentUser}
-        onAuthenticated={(user: any) => {
         onAuthenticated={(user: UserProfileData) => {
           setCurrentUser(user);
           setSessionError('');
@@ -80,6 +79,8 @@ export default function Home() {
         isDarkMode={isDarkMode}
         onDarkModeChange={setIsDarkMode}
         isSidebarOpen={isSidebarOpen}
+        authenticatedUsername={currentUser?.username ?? null}
+        onLoginRequired={() => setSidebarOpen(true)}
       />
     </main>
   );
