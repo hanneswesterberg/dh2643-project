@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.gis.geos import Point
-from .models import Event, Venue
+from .models import Artist, Event, Genre, Venue
 
 # Create your tests here.
 class EventAPITests(APITestCase):
@@ -40,3 +40,26 @@ class EventAPITests(APITestCase):
         first_feature = response.data['features'][0]
         self.assertEqual(first_feature['properties']['name'], 'Test Concert')
         self.assertEqual(first_feature['properties']['venue_name'], 'Test Venue')
+        self.assertEqual(first_feature['properties']['genres'], '')
+
+    def test_get_events_includes_artist_genres(self):
+        punk = Genre.objects.create(name='Punk')
+        alternative_rock = Genre.objects.create(name='Alternative rock')
+        first_artist = Artist.objects.create(name='First Artist')
+        second_artist = Artist.objects.create(name='Second Artist')
+        first_artist.genres.add(punk, alternative_rock)
+        second_artist.genres.add(punk)
+        self.event.artists.add(first_artist, second_artist)
+
+        response = self.client.get('/api/events/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        event = next(
+            feature
+            for feature in response.data['features']
+            if feature['properties']['name'] == 'Test Concert'
+        )
+        self.assertEqual(
+            event['properties']['genres'],
+            'Alternative rock, Punk',
+        )

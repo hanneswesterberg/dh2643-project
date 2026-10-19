@@ -24,7 +24,6 @@ const ConcertMap = dynamic(
 );
 
 export default function Home() {
-  const [search, setSearch] = useState('');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useThemePreference();
   const [currentUser, setCurrentUser] = useState<UserProfileData | null>(null);
@@ -57,8 +56,6 @@ export default function Home() {
     >
       <header className="relative z-50 shrink-0">
         <NavBar
-          search={search}
-          onSearchChange={setSearch}
           loginChange={setSidebarOpen}
           currentSidebarState={isSidebarOpen}
           isDarkMode={isDarkMode}
@@ -71,7 +68,7 @@ export default function Home() {
         isDarkMode={isDarkMode}
         onClose={() => setSidebarOpen(false)}
         currentUser={currentUser}
-        onAuthenticated={(user: any) => {
+        onAuthenticated={(user: UserProfileData) => {
           setCurrentUser(user);
           setSessionError('');
         }}
@@ -82,6 +79,8 @@ export default function Home() {
         isDarkMode={isDarkMode}
         onDarkModeChange={setIsDarkMode}
         isSidebarOpen={isSidebarOpen}
+        authenticatedUsername={currentUser?.username ?? null}
+        onLoginRequired={() => setSidebarOpen(true)}
       />
     </main>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import MapFilterBox from './MapFilterBox';
 import { createPortal } from 'react-dom';
 import 'ol/ol.css';
@@ -16,9 +17,11 @@ import Overlay from 'ol/Overlay';
 import TileLayer from 'ol/layer/Tile';
 import VectorLayer from 'ol/layer/Vector';
 
+import Cluster from 'ol/source/Cluster';
 import StadiaMaps from 'ol/source/StadiaMaps';
 import VectorSource from 'ol/source/Vector';
 
+import { createEmpty, extend } from 'ol/extent';
 import { fromLonLat } from 'ol/proj';
 
 import Point from 'ol/geom/Point';
@@ -31,7 +34,6 @@ import Text from 'ol/style/Text';
 
 type EventDetails = {
   id: number;
-  ticksterId: string;
   name: string;
   start: string;
   end: string | null;
@@ -39,7 +41,7 @@ type EventDetails = {
   imageUrl: string;
   venueName: string;
   artists: string[];
-  genre: string;
+  genres: string;
 };
 
 type VenueGroup = {
@@ -79,6 +81,8 @@ function getEventGenres(event: Event): string[] {
   // Check top-level event.properties.genre or event.properties.genres
   if (Array.isArray(props.genres)) {
     props.genres.forEach(addGenreString);
+  } else if (typeof props.genres === 'string') {
+    addGenreString(props.genres);
   } else {
     addGenreString(props.genre);
   }
@@ -155,6 +159,7 @@ export default function ConcertMap({
   const popupRef = useRef<Overlay | null>(null);
   const markerSourceRef = useRef<VectorSource<Feature<Point>> | null>(null);
   const markerFeaturesRef = useRef<Feature<Point>[]>([]);
+  const hoveredFeatureRef = useRef<Feature | null>(null);
   const eventsRef = useRef<EventFeatureCollection | null>(null);
   const venuesRef = useRef<Map<string, VenueGroup>>(new Map());
   const selectedEventRef =
@@ -164,6 +169,7 @@ export default function ConcertMap({
   const [selectedEvent, setSelectedEvent] =
     useState<EventFeatureCollection['features'][number] | null>(null);
   const [selectedVenue, setSelectedVenue] = useState<VenueGroup | null>(null);
+  const [animateWheelEvents, setAnimateWheelEvents] = useState(false);
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [venueEventsPage, setVenueEventsPage] = useState(0);
   const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
@@ -180,7 +186,18 @@ export default function ConcertMap({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
+  const clearSelection = () => {
+    popupRef.current?.setPosition(undefined);
+    selectedEventRef.current = null;
+    selectedVenueRef.current = null;
+    setAnimateWheelEvents(false);
+    setSelectedEvent(null);
+    setSelectedVenue(null);
+    setSelectedStage(null);
+  };
+
   const handleToggleGenre = (genre: string) => {
+    clearSelection();
     setSelectedGenres((prev) =>
       prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]
     );
@@ -189,7 +206,6 @@ export default function ConcertMap({
   const eventDetails: EventDetails | null = selectedEvent
     ? {
         id: selectedEvent.id,
-        ticksterId: selectedEvent.properties.tickster_id,
         name: selectedEvent.properties.name,
         start: selectedEvent.properties.start,
         end: selectedEvent.properties.end,
@@ -197,7 +213,7 @@ export default function ConcertMap({
         imageUrl: selectedEvent.properties.image_url,
         venueName: selectedEvent.properties.venue_name,
         artists: selectedEvent.properties.artists.map((artist) => artist.name),
-        genre: selectedEvent.properties.genre,
+        genres: selectedEvent.properties.genres,
       }
     : null;
 
@@ -299,13 +315,29 @@ export default function ConcertMap({
 
     const markerSource = new VectorSource<Feature<Point>>();
     markerSourceRef.current = markerSource;
+    const clusterSource = new Cluster({
+      distance: 40,
+      source: markerSource,
+      createCluster: (point, features) =>
+        new Feature({
+          geometry: point,
+          features,
+          eventCount: features.reduce(
+            (total, feature) => total + Number(feature.get('eventCount') ?? 0),
+            0
+          ),
+          clusterSize: features.length,
+        }),
+    });
 
     const eventsLayer = new VectorLayer({
-      source: markerSource,
-      style: (feature) =>
-        new Style({
+      source: clusterSource,
+      style: (feature) => {
+        const clusterSize = Number(feature.get('clusterSize') ?? 1);
+        const hoverScale = Number(feature.get('hoverScale') ?? 1);
+        const markerStyle = new Style({
           image: new CircleStyle({
-            radius: 11,
+            radius: (clusterSize > 1 ? 14 : 11) * hoverScale,
             fill: new Fill({
               color: getMarkerColor(isDarkModeRef.current),
             }),
@@ -318,7 +350,26 @@ export default function ConcertMap({
             textAlign: 'center',
             textBaseline: 'middle',
           }),
-        }),
+        });
+
+        if (clusterSize <= 1) return markerStyle;
+
+        const haloRadius =
+          Math.min(40, 24 + Math.sqrt(clusterSize - 1) * 5) * hoverScale;
+        const haloColor = isDarkModeRef.current
+          ? 'rgba(255, 132, 0, 0.2)'
+          : 'rgba(37, 99, 235, 0.2)';
+
+        return [
+          new Style({
+            image: new CircleStyle({
+              radius: haloRadius,
+              fill: new Fill({ color: haloColor }),
+            }),
+          }),
+          markerStyle,
+        ];
+      },
     });
 
     const overlayElement = document.createElement('div');
@@ -349,15 +400,72 @@ export default function ConcertMap({
         zoom: 11,
       }),
     });
+    const zoomControl = map
+      .getTargetElement()
+      ?.querySelector<HTMLElement>('.ol-zoom');
+    if (zoomControl) {
+      zoomControl.style.top = 'auto';
+      zoomControl.style.bottom = '12.5%';
+      zoomControl.style.left = 'auto';
+      zoomControl.style.right = '0.5em';
+    }
     mapInstanceRef.current = map;
 
     const target = mapRef.current;
-    const handlePointerMove = (event: { pixel: number[] }) => {
-      const isMarkerHovered = map.hasFeatureAtPixel(event.pixel, {
-        layerFilter: (layer) => layer === eventsLayer,
-      });
+    const scaleAnimations = new Map<
+      Feature,
+      { from: number; to: number; startedAt: number }
+    >();
+    let animationFrame: number | null = null;
 
-      target.style.cursor = isMarkerHovered ? 'pointer' : '';
+    const animateScales = (timestamp: number) => {
+      for (const [feature, animation] of scaleAnimations) {
+        const progress = Math.min((timestamp - animation.startedAt) / 180, 1);
+        const easedProgress = 1 - (1 - progress) ** 3;
+        feature.set(
+          'hoverScale',
+          animation.from + (animation.to - animation.from) * easedProgress
+        );
+        if (progress === 1) scaleAnimations.delete(feature);
+      }
+
+      eventsLayer.changed();
+      animationFrame = scaleAnimations.size > 0
+        ? requestAnimationFrame(animateScales)
+        : null;
+    };
+
+    const animateFeatureScale = (feature: Feature | null, scale: number) => {
+      if (!feature) return;
+
+      const currentScale = Number(feature.get('hoverScale') ?? 1);
+      if (currentScale === scale) return;
+
+      scaleAnimations.set(feature, {
+        from: currentScale,
+        to: scale,
+        startedAt: performance.now(),
+      });
+      if (animationFrame === null) {
+        animationFrame = requestAnimationFrame(animateScales);
+      }
+    };
+
+    const handlePointerMove = (event: { pixel: number[] }) => {
+      const hoveredFeature =
+        map.forEachFeatureAtPixel(
+          event.pixel,
+          (feature) => (feature instanceof Feature ? feature : null),
+          { layerFilter: (layer) => layer === eventsLayer }
+        ) ?? null;
+
+      if (hoveredFeatureRef.current !== hoveredFeature) {
+        animateFeatureScale(hoveredFeatureRef.current, 1);
+        hoveredFeatureRef.current = hoveredFeature;
+        animateFeatureScale(hoveredFeatureRef.current, 1.5);
+      }
+
+      target.style.cursor = hoveredFeature ? 'pointer' : '';
     };
     map.on('pointermove', handlePointerMove);
 
@@ -367,7 +475,32 @@ export default function ConcertMap({
         (feature) => feature,
         { layerFilter: (layer) => layer === eventsLayer }
       );
-      const venueKey = clickedMarker?.get('venueKey');
+      const clusterMembers = clickedMarker?.get('features');
+      const memberFeatures = Array.isArray(clusterMembers)
+        ? clusterMembers.filter(
+            (member): member is Feature<Point> => member instanceof Feature
+          )
+        : [];
+      if (memberFeatures.length > 1) {
+        const extent = createEmpty();
+        for (const member of memberFeatures) {
+          const geometry = member.getGeometry();
+          if (geometry) extend(extent, geometry.getExtent());
+        }
+        popup.setPosition(undefined);
+        selectedEventRef.current = null;
+        selectedVenueRef.current = null;
+        setSelectedEvent(null);
+        setSelectedVenue(null);
+        setSelectedStage(null);
+        setVenueEventsPage(0);
+        map.getView().fit(extent, {
+          duration: 250,
+          maxZoom: (map.getView().getZoom() ?? 11) + 3,
+        });
+        return;
+      }
+      const venueKey = (memberFeatures[0] ?? clickedMarker)?.get('venueKey');
       const venue =
         typeof venueKey === 'string'
           ? venuesRef.current.get(venueKey)
@@ -394,6 +527,7 @@ export default function ConcertMap({
       }
 
       selectedVenueRef.current = venue;
+      setAnimateWheelEvents(venue.events.length > 1);
       setSelectedVenue(venue);
       setSelectedStage(null);
       setVenueEventsPage(0);
@@ -415,6 +549,8 @@ export default function ConcertMap({
 
     const handlePointerLeave = () => {
       target.style.cursor = '';
+      animateFeatureScale(hoveredFeatureRef.current, 1);
+      hoveredFeatureRef.current = null;
     };
     target.addEventListener('pointerleave', handlePointerLeave);
 
@@ -422,11 +558,15 @@ export default function ConcertMap({
       map.un('pointermove', handlePointerMove);
       map.un('singleclick', handleMapClick);
       target.removeEventListener('pointerleave', handlePointerLeave);
+      if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+      scaleAnimations.clear();
       mapInstanceRef.current = null;
       basemapLayerRef.current = null;
       popupRef.current = null;
       markerSourceRef.current = null;
       markerFeaturesRef.current = [];
+      hoveredFeatureRef.current = null;
+      clusterSource.setSource(null);
       setPopupElement(null);
       map.setTarget(undefined);
     };
@@ -482,34 +622,26 @@ export default function ConcertMap({
   }, [events, selectedGenres, startDate, endDate]);
 
   useEffect(() => {
-  if (!events) return;
+    if (!events) return;
 
-  // Close any open popup when filters change so stale popups don't linger
-  popupRef.current?.setPosition(undefined);
-  selectedEventRef.current = null;
-  selectedVenueRef.current = null;
-  setSelectedEvent(null);
-  setSelectedVenue(null);
-  setSelectedStage(null);
+    const venues = groupEventsByVenue(filteredFeatures);
+    venuesRef.current = new Map(venues.map((venue) => [venue.key, venue]));
+    const markerFeatures = venues.map(
+      (venue) =>
+        new Feature({
+          geometry: new Point(fromLonLat(venue.coordinates)),
+          venueKey: venue.key,
+          eventCount: venue.events.length,
+        })
+    );
+    markerFeaturesRef.current = markerFeatures;
 
-  const venues = groupEventsByVenue(filteredFeatures);
-  venuesRef.current = new Map(venues.map((venue) => [venue.key, venue]));
-  const markerFeatures = venues.map(
-    (venue) =>
-      new Feature({
-        geometry: new Point(fromLonLat(venue.coordinates)),
-        venueKey: venue.key,
-        eventCount: venue.events.length,
-      })
-  );
-  markerFeaturesRef.current = markerFeatures;
+    const markerSource = markerSourceRef.current;
+    if (!markerSource) return;
 
-  const markerSource = markerSourceRef.current;
-  if (!markerSource) return;
-
-  markerSource.clear(true);
-  markerSource.addFeatures(markerFeatures);
-}, [events, filteredFeatures]);
+    markerSource.clear(true);
+    markerSource.addFeatures(markerFeatures);
+  }, [events, filteredFeatures]);
 
   return (
     <div
@@ -537,10 +669,17 @@ export default function ConcertMap({
         selectedGenres={selectedGenres}
         onToggleGenre={handleToggleGenre}
         startDate={startDate}
-        onStartDateChange={setStartDate}
+        onStartDateChange={(date) => {
+          clearSelection();
+          setStartDate(date);
+        }}
         endDate={endDate}
-        onEndDateChange={setEndDate}
+        onEndDateChange={(date) => {
+          clearSelection();
+          setEndDate(date);
+        }}
         onReset={() => {
+          clearSelection();
           setSelectedGenres([]);
           setStartDate('');
           setEndDate('');
@@ -630,16 +769,16 @@ export default function ConcertMap({
                     pointerEvents: 'auto',
                   }
                 : {
-                    minWidth: '220px',
-                    maxWidth: '320px',
+                    minWidth: '240px',
+                    maxWidth: '360px',
                     maxHeight: 'min(70vh, 480px)',
                     overflowY: 'auto',
-                    padding: '12px 14px',
+                    padding: '16px 18px',
                     borderRadius: '8px',
                     background: isDarkMode ? '#1f2937' : 'white',
                     boxShadow: '0 2px 12px rgba(0, 0, 0, 0.25)',
                     color: isDarkMode ? '#f9fafb' : '#171717',
-                    fontSize: '14px',
+                    fontSize: '15px',
                     pointerEvents: 'auto',
                   }
             }
@@ -698,7 +837,12 @@ export default function ConcertMap({
                   ))
                 : 'Unavailable'}
             </div>
-            <div>Genre: {eventDetails.genre}</div>
+            <div>
+              Genres:{' '}
+              {eventDetails.genres
+                ? eventDetails.genres
+                : 'Unavailable'}
+            </div>
             <div>Starts: {new Date(eventDetails.start).toLocaleString()}</div>
             <div>
               Ends:{' '}
@@ -706,7 +850,6 @@ export default function ConcertMap({
                 ? new Date(eventDetails.end).toLocaleString()
                 : 'Unavailable'}
             </div>
-            <div>Event ID: {eventDetails.ticksterId}</div>
             {eventDetails.ticketUrl && (
               <div>
                 <a
@@ -809,9 +952,11 @@ export default function ConcertMap({
                       const artists = event.properties.artists
                         .slice(0, 2)
                         .map((artist) => artist.name);
+                      const artistLabel =
+                        artists.length > 0 ? artists.join(' & ') : 'Event';
 
                       return (
-                        <button
+                        <motion.button
                           key={event.id}
                           type="button"
                           aria-label={`View ${event.properties.name}, ${new Date(
@@ -819,18 +964,44 @@ export default function ConcertMap({
                           ).toLocaleString()}`}
                           title={event.properties.name}
                           onClick={() => {
+                            setAnimateWheelEvents(false);
                             selectedEventRef.current = event;
                             setSelectedEvent(event);
                           }}
+                          initial={
+                            animateWheelEvents
+                              ? {
+                                  left: '50%',
+                                  top: '50%',
+                                  opacity: 0,
+                                  scale: 0.55,
+                                }
+                              : false
+                          }
+                          animate={{
+                            left: `${x}%`,
+                            top: `${y}%`,
+                            opacity: 1,
+                            scale: 1,
+                          }}
+                          transition={{
+                            type: 'spring',
+                            stiffness: 260,
+                            damping: 22,
+                            delay: index * 0.035,
+                          }}
+                          onAnimationComplete={() => {
+                            if (index === pageEvents.length - 1) {
+                              setAnimateWheelEvents(false);
+                            }
+                          }}
                           style={{
                             position: 'absolute',
-                            top: `${y}%`,
-                            left: `${x}%`,
                             display: 'grid',
                             width: '68px',
                             height: '68px',
                             placeItems: 'center',
-                            transform: 'translate(-50%, -50%)',
+                            translate: '-50% -50%',
                             padding: '6px',
                             border: '3px solid white',
                             borderRadius: '50%',
@@ -838,16 +1009,27 @@ export default function ConcertMap({
                             boxShadow: '0 3px 10px rgba(0, 0, 0, 0.35)',
                             color: 'white',
                             cursor: 'pointer',
-                            fontSize: '10px',
+                            fontSize:
+                              artistLabel.length > 24
+                                ? '8px'
+                                : artistLabel.length > 16
+                                  ? '9px'
+                                  : '10px',
                             fontWeight: 600,
                             lineHeight: 1.15,
                             textAlign: 'center',
                           }}
                         >
-                          {artists.length > 0
-                            ? artists.join(' & ')
-                            : 'Event'}
-                        </button>
+                          <span
+                            style={{
+                              width: '100%',
+                              minWidth: 0,
+                              overflowWrap: 'anywhere',
+                            }}
+                          >
+                            {artistLabel}
+                          </span>
+                        </motion.button>
                       );
                     })}
                   </div>
@@ -874,6 +1056,7 @@ export default function ConcertMap({
                         aria-label={`Choose stage at ${selectedVenue.name}`}
                         value={selectedStage ?? ''}
                         onChange={(change) => {
+                          setAnimateWheelEvents(false);
                           setSelectedStage(change.target.value || null);
                           setVenueEventsPage(0);
                         }}
@@ -901,6 +1084,7 @@ export default function ConcertMap({
                       popupRef.current?.setPosition(undefined);
                       selectedEventRef.current = null;
                       selectedVenueRef.current = null;
+                      setAnimateWheelEvents(false);
                       setSelectedEvent(null);
                       setSelectedVenue(null);
                       setSelectedStage(null);
@@ -921,13 +1105,26 @@ export default function ConcertMap({
                       boxShadow: '0 3px 12px rgba(0, 0, 0, 0.4)',
                       color: 'white',
                       cursor: 'pointer',
-                      fontSize: '11px',
+                      fontSize:
+                        centerMarkerLabel.length > 26
+                          ? '8px'
+                          : centerMarkerLabel.length > 18
+                            ? '9px'
+                            : '11px',
                       fontWeight: 700,
                       lineHeight: 1.1,
                       textAlign: 'center',
                     }}
                   >
-                    {centerMarkerLabel}
+                    <span
+                      style={{
+                        width: '100%',
+                        minWidth: 0,
+                        overflowWrap: 'anywhere',
+                      }}
+                    >
+                      {centerMarkerLabel}
+                    </span>
                   </button>
                   {pageCount > 1 && (
                     <div
@@ -950,9 +1147,10 @@ export default function ConcertMap({
                         type="button"
                         aria-label="Previous events"
                         disabled={venueEventsPage === 0}
-                        onClick={() =>
+                        onClick={() => {
+                          setAnimateWheelEvents(false);
                           setVenueEventsPage((page) => Math.max(0, page - 1))
-                        }
+                        }}
                         style={{
                           border: 0,
                           borderRadius: '50%',
@@ -983,11 +1181,12 @@ export default function ConcertMap({
                         type="button"
                         aria-label="Next events"
                         disabled={venueEventsPage === pageCount - 1}
-                        onClick={() =>
+                        onClick={() => {
+                          setAnimateWheelEvents(false);
                           setVenueEventsPage((page) =>
                             Math.min(pageCount - 1, page + 1)
                           )
-                        }
+                        }}
                         style={{
                           border: 0,
                           borderRadius: '50%',
