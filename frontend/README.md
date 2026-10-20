@@ -16,6 +16,30 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Browser end-to-end tests
+
+The Playwright suite runs against a production Next.js build and tests signup,
+login, profile editing, and the handoff to a ticket-provider page. Run it against
+a disposable backend/test database that has at least one event with coordinates
+and an HTTPS ticket URL:
+
+```bash
+npx playwright install chromium
+E2E_API_URL=http://localhost:8000 npm run test:e2e
+```
+
+The test build starts on `http://localhost:3000`, so stop any frontend already
+using that port before running the suite. If you choose another `E2E_BASE_URL`,
+allow that origin in the test backend's CORS and CSRF trusted-origin settings.
+
+Optionally set `E2E_TICKET_EVENT_ID` to select a specific event. The browser
+checkout step intercepts the provider URL with a local test page; it does not
+visit the real ticket site or make a purchase. The test creates a unique account,
+saves the fixture event to that account, and deletes the account afterward
+(which also removes the saved-event relation). The test server build points
+frontend API calls and Next.js event/media rewrites at `E2E_API_URL`. Remote API
+targets are rejected unless `E2E_ALLOW_REMOTE_API=true` is explicitly set.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

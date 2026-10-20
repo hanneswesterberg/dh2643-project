@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import SystemMessageProvider from "./components/SystemMessageProvider";
 //import NavBar from "./components/navbar/Navbar";
 //import { useState } from "react";
 
@@ -29,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         {/* <NavBar search={search} onSearchChange={setSearch}/> */}
-        {children}
+        <SystemMessageProvider>{children}</SystemMessageProvider>
       </body>
     </html>
   );

@@ -51,3 +51,14 @@ docker compose exec backend python manage.py sync_musicbrainz --limit 50
 * Frontend (Next.js): http://localhost:3000
 * Backend API: http://localhost:8000/api/events/
 
+## Run live API contract tests
+
+Start the backend and load at least one event with venue coordinates, then run:
+
+```bash
+python -m unittest discover -s backend/api_tests -v
+```
+
+The suite sends HTTP requests to the running server at `http://127.0.0.1:8000`.
+Set `API_BASE_URL` to target a different server. It creates a uniquely named
+temporary account and deletes it when the test finishes.

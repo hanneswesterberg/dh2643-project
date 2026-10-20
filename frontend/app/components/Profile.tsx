@@ -3,9 +3,10 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { UserProfileData } from "./userModel";
 import { checkUsernameAvailability, deleteAccount, loadProfile, updatePassword, updateProfile} from "./Lib/userAPI"
+import { useSystemMessage } from "./SystemMessageProvider";
 
 type BioFormat = "bold" | "italic" | "underline";
-type UsernameCheckState = "idle" | "checking" | "available" | "taken" | "error";
+type UsernameCheckState = "idle" | "checking" | "available" | "taken";
 type CropImageDimensions = {
     width: number;
     height: number;
@@ -15,10 +16,9 @@ type CropImageDimensions = {
 
 export default function UserProfile() {
     const router = useRouter();
+    const showSystemMessage = useSystemMessage();
     const [profile, setProfile] = useState<UserProfileData | null>(null);
     const [savedProfile, setSavedProfile] = useState<Pick<UserProfileData, "username" | "display_name" | "email" | "bio"> | null>(null);
-    const [error, setError] = useState("");
-    const [notice, setNotice] = useState("");
     const [saving, setSaving] = useState(false);
     const [deletingAccount, setDeletingAccount] = useState(false);
     const [passwordChangeEnabled, setPasswordChangeEnabled] = useState(false);
@@ -26,9 +26,7 @@ export default function UserProfile() {
     const [confirmNewPassword, setConfirmNewPassword] = useState("");
     const [maskedPasswordLength, setMaskedPasswordLength] = useState(8);
     const [passwordSaving, setPasswordSaving] = useState(false);
-    const [passwordError, setPasswordError] = useState("");
     const [usernameCheckState, setUsernameCheckState] = useState<UsernameCheckState>("idle");
-    const [usernameCheckError, setUsernameCheckError] = useState("");
     const [pictureFile, setPictureFile] = useState<File | null>(null);
     const [originalPictureFile, setOriginalPictureFile] = useState<File | null>(null);
     const [picturePreviewUrl, setPicturePreviewUrl] = useState<string | null>(null);
@@ -88,11 +86,12 @@ export default function UserProfile() {
                 })
                 .catch((checkError: unknown) => {
                     if (controller.signal.aborted) return;
-                    setUsernameCheckState("error");
-                    setUsernameCheckError(
+                    setUsernameCheckState("idle");
+                    showSystemMessage(
                         checkError instanceof Error
                             ? checkError.message
                             : "Could not check username availability.",
+                        "error",
                     );
                 });
         }, 300);
@@ -101,7 +100,7 @@ export default function UserProfile() {
             window.clearTimeout(timeout);
             controller.abort();
         };
-    }, [usernameForCheck, savedUsername]);
+    }, [usernameForCheck, savedUsername, showSystemMessage]);
 
     useEffect(() => {
         if (!cropSourceUrl) return;
@@ -125,11 +124,14 @@ export default function UserProfile() {
                     bio: response.bio,
                 });
             } catch (loadError) {
-                setError(loadError instanceof Error ? loadError.message : "Could not load your profile.");
+                showSystemMessage(
+                    loadError instanceof Error ? loadError.message : "Could not load your profile.",
+                    "error",
+                );
             }
         }
         void load();
-    }, []);
+    }, [showSystemMessage]);
 
     useEffect(() => {
         if (bioEditor.current && bioEditor.current.innerHTML !== profile?.bio) {
@@ -162,8 +164,6 @@ export default function UserProfile() {
         if (!profile) return;
 
         setSaving(true);
-        setError("");
-        setNotice("");
         try {
             const data = await updateProfile(
                 profile.username,
@@ -182,29 +182,28 @@ export default function UserProfile() {
                 bio: updatedProfile.bio,
             });
             setUsernameCheckState("idle");
-            setUsernameCheckError("");
             setPictureFile(null);
             setOriginalPictureFile(null);
             setPicturePreviewUrl(null);
             setPasswordChangeEnabled(false);
             setNewPassword("");
             if (pictureInput.current) pictureInput.current.value = "";
-            setNotice("Profile updated.");
+            showSystemMessage("Profile updated.", "success");
         } catch (saveError) {
-            setError(saveError instanceof Error ? saveError.message : "Could not save your profile.");
+            const message = saveError instanceof Error ? saveError.message : "Could not save your profile.";
+            showSystemMessage(message, "error");
         } finally {
             setSaving(false);
+            router.push("/");
         }
     }
 
     function updateField(field: keyof UserProfileData, value: string) {
-        setNotice("");
         if (field === "username") {
             const trimmedUsername = value.trim();
             setUsernameCheckState(
                 trimmedUsername && trimmedUsername !== savedUsername ? "checking" : "idle",
             );
-            setUsernameCheckError("");
         }
 
         setProfile((current) => current ? { ...current, [field]: value } : current);
@@ -214,29 +213,25 @@ export default function UserProfile() {
         setPasswordChangeEnabled((enabled) => !enabled);
         setNewPassword("");
         setConfirmNewPassword("");
-        setPasswordError("");
     }
 
     async function savePassword() {
         if (!newPassword || newPassword !== confirmNewPassword) {
-            setPasswordError("Passwords do not match.");
+            showSystemMessage("Passwords do not match.", "error");
             return;
         }
 
         setPasswordSaving(true);
-        setPasswordError("");
-        setNotice("");
         try {
             await updatePassword(newPassword);
             setMaskedPasswordLength(newPassword.length);
             setPasswordChangeEnabled(false);
             setNewPassword("");
             setConfirmNewPassword("");
-            setNotice("Password updated.");
+            showSystemMessage("Password updated.", "success");
         } catch (saveError) {
-            setPasswordError(
-                saveError instanceof Error ? saveError.message : "Could not update your password.",
-            );
+            const message = saveError instanceof Error ? saveError.message : "Could not update your password.";
+            showSystemMessage(message, "error");
         } finally {
             setPasswordSaving(false);
         }
@@ -248,15 +243,15 @@ export default function UserProfile() {
         }
 
         setDeletingAccount(true);
-        setError("");
-        setNotice("");
         try {
             await deleteAccount();
+            showSystemMessage("Account deleted.", "success");
             router.replace("/");
         } catch (deleteError) {
-            setError(deleteError instanceof Error
+            const message = deleteError instanceof Error
                 ? deleteError.message
-                : "Could not delete your account.");
+                : "Could not delete your account.";
+            showSystemMessage(message, "error");
         } finally {
             setDeletingAccount(false);
         }
@@ -291,14 +286,14 @@ export default function UserProfile() {
 
     function startCrop(file: File, preserveCurrentSelection = false) {
         if (file.size > 2 * 1024 * 1024) {
-            setError("Profile pictures must be 2 MB or smaller.");
+            showSystemMessage("Profile pictures must be 2 MB or smaller.", "error");
             return;
         }
         if (
             !["image/png", "image/jpeg"].includes(file.type) &&
             !/\.(png|jpe?g)$/i.test(file.name)
         ) {
-            setError("Choose a PNG or JPEG image.");
+            showSystemMessage("Choose a PNG or JPEG image.", "error");
             return;
         }
 
@@ -322,8 +317,6 @@ export default function UserProfile() {
 
     function handlePictureSelection(file: File | null, input: HTMLInputElement) {
         if (!file) return;
-        setError("");
-        setNotice("");
         previousPictureSelection.current = null;
         startCrop(file);
         if (file.size > 2 * 1024 * 1024 ||
@@ -336,7 +329,6 @@ export default function UserProfile() {
     function chooseNewPicture() {
         if (pictureInput.current) {
             pictureInput.current.value = "";
-            setError("");
             setCropImageDimensions(null);
             setChoosingNewPicture(true);
         }
@@ -351,9 +343,6 @@ export default function UserProfile() {
     }
 
     async function openExistingPictureCrop() {
-        setError("");
-        setNotice("");
-
         if (originalPictureFile) {
             startCrop(originalPictureFile, true);
             return;
@@ -386,9 +375,12 @@ export default function UserProfile() {
                 : `${fileName}${extension}`, { type: contentType });
             startCrop(file, true);
         } catch (cropError) {
-            setError(cropError instanceof Error
-                ? cropError.message
-                : "Could not load your current profile picture for cropping.");
+            showSystemMessage(
+                cropError instanceof Error
+                    ? cropError.message
+                    : "Could not load your current profile picture for cropping.",
+                "error",
+            );
         }
     }
 
@@ -455,13 +447,12 @@ export default function UserProfile() {
         const image = cropImageElement.current;
         if (!image || !cropImageDimensions) return;
 
-        setError("");
         const canvas = document.createElement("canvas");
         canvas.width = 512;
         canvas.height = 512;
         const context = canvas.getContext("2d");
         if (!context) {
-            setError("Could not prepare the cropped image. Please try again.");
+            showSystemMessage("Could not prepare the cropped image. Please try again.", "error");
             return;
         }
 
@@ -490,7 +481,7 @@ export default function UserProfile() {
                 );
             });
             if (blob.size > 2 * 1024 * 1024) {
-                setError("The cropped image is too large. Please choose a smaller image.");
+                showSystemMessage("The cropped image is too large. Please choose a smaller image.", "error");
                 return;
             }
 
@@ -504,9 +495,12 @@ export default function UserProfile() {
             setCropSourceUrl(null);
             setCropImageDimensions(null);
         } catch (cropError) {
-            setError(cropError instanceof Error
-                ? cropError.message
-                : "Could not crop the image. Please try again.");
+            showSystemMessage(
+                cropError instanceof Error
+                    ? cropError.message
+                    : "Could not crop the image. Please try again.",
+                "error",
+            );
         }
     }
 
@@ -528,11 +522,10 @@ export default function UserProfile() {
         }
         previousPictureSelection.current = null;
         cropOriginalFile.current = null;
-        setError("");
     }
 
     if (!profile) {
-        return <p role="status">{error || "Loading profile..."}</p>;
+        return <p role="status">Loading profile...</p>;
     }
 
     return (
@@ -619,11 +612,6 @@ export default function UserProfile() {
                             Username already taken
                         </span>
                     )}
-                    {usernameCheckState === "error" && (
-                        <span className="mt-1 block text-sm text-red-700" role="alert">
-                            {usernameCheckError}
-                        </span>
-                    )}
                 </label>
                 <label className="block">
                     Display Name
@@ -679,7 +667,6 @@ export default function UserProfile() {
                                     value={newPassword}
                                     onChange={(event) => {
                                         setNewPassword(event.target.value);
-                                        setPasswordError("");
                                     }}
                                     onKeyDown={(event) => {
                                         if (event.key === "Enter") {
@@ -698,7 +685,6 @@ export default function UserProfile() {
                                     value={confirmNewPassword}
                                     onChange={(event) => {
                                         setConfirmNewPassword(event.target.value);
-                                        setPasswordError("");
                                     }}
                                     onKeyDown={(event) => {
                                         if (event.key === "Enter") {
@@ -709,16 +695,6 @@ export default function UserProfile() {
                                     className="mt-1 block w-full rounded border p-2"
                                 />
                             </label>
-                            {newPassword && confirmNewPassword && newPassword !== confirmNewPassword && (
-                                <p role="alert" className="text-sm text-red-700">
-                                    Passwords do not match.
-                                </p>
-                            )}
-                            {passwordError && (
-                                <p role="alert" className="text-sm text-red-700">
-                                    {passwordError}
-                                </p>
-                            )}
                             <button
                                 type="button"
                                 onClick={() => void savePassword()}
@@ -805,8 +781,6 @@ export default function UserProfile() {
                 >
                     {deletingAccount ? "Deleting..." : "Delete account"}
                 </button>
-                {error && <p role="alert">{error}</p>}
-                {notice && <p role="status">{notice}</p>}
             </form>
             {cropSourceUrl && (
                 <div
@@ -827,7 +801,6 @@ export default function UserProfile() {
                                 ? "Choose an image to use as your profile picture."
                                 : "Drag the image to choose a square crop."}
                         </p>
-                        {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
                         {choosingNewPicture ? (
                             <div
                                 role="button"
@@ -916,7 +889,7 @@ export default function UserProfile() {
                                 alt="Drag to adjust the square crop"
                                 draggable={false}
                                 onLoad={initializeCrop}
-                                onError={() => setError("Upload a valid PNG or JPEG image.")}
+                                onError={() => showSystemMessage("Upload a valid PNG or JPEG image.", "error")}
                                 className="pointer-events-none absolute max-w-none select-none"
                                 style={cropImageDimensions ? {
                                     left: cropPosition.x,
