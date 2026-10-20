@@ -6,6 +6,7 @@ EXCLUDE = {
     "magnus betnér",
     "emma knyckare",
     "özz nûjen",
+    "özz nujen",
     "marcus birro",
     "gina dirawi",
     "anders jansson",
