@@ -21,7 +21,8 @@ export default function SideBar({
   onAuthenticated,
   onLoggedOut,
 }: SideBarProps) {
-  const [mode, setMode] = useState('login');
+
+  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -72,6 +73,7 @@ export default function SideBar({
   }
 
   function changeMode(nextMode : string) {
+  function changeMode(nextMode: 'login' | 'register') {
     setMode(nextMode);
     setPassword('');
     setConfirmPassword('');
