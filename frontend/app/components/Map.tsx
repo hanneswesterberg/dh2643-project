@@ -36,6 +36,21 @@ import Text from 'ol/style/Text';
 
 import { useSearchParams } from 'next/navigation';
 
+if (typeof window !== 'undefined') {
+  const originalGetContext = HTMLCanvasElement.prototype.getContext;
+  
+  HTMLCanvasElement.prototype.getContext = function (
+    this: HTMLCanvasElement, // <-- Add this line to explicitly type 'this'
+    contextId: string,
+    options?: any
+  ) {
+    if (contextId === '2d') {
+      options = { ...options, willReadFrequently: true };
+    }
+    return originalGetContext.call(this, contextId, options);
+  } as any;
+}
+
 type EventDetails = {
   id: number;
   name: string;
