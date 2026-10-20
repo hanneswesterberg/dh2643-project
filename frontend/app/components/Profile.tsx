@@ -194,6 +194,7 @@ export default function UserProfile() {
             setError(saveError instanceof Error ? saveError.message : "Could not save your profile.");
         } finally {
             setSaving(false);
+            router.push("/");
         }
     }
 
