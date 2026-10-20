@@ -6,6 +6,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from typing import Any
 
 
 API_BASE_URL = os.environ.get("API_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
@@ -18,7 +19,7 @@ class LiveAPIClient:
         self.opener = urllib.request.build_opener(
             urllib.request.HTTPCookieProcessor(self.cookies),
         )
-        self.csrf_token = None
+        self.csrf_token: str | None = None
 
     def request(
         self,
@@ -61,15 +62,28 @@ class LiveAPIContractTests(unittest.TestCase):
         self.username = f"api-contract-{suffix}"
         self.password = f"ApiTest-{uuid.uuid4().hex}-!Q"
 
-    def assert_json_response(self, response, expected_status):
+    def assert_json_response(self, response, expected_status) -> Any:
         status_code, body, content_type = response
         self.assertEqual(status_code, expected_status, f"Unexpected API response: {body!r}")
         self.assertIn("application/json", content_type)
+        if body is None:
+            self.fail("Expected a JSON response body.")
         return body
 
-    def assert_error_object(self, response, expected_status):
+    def assert_object_response(self, response, expected_status) -> dict[str, Any]:
         body = self.assert_json_response(response, expected_status)
-        self.assertIsInstance(body, dict)
+        if not isinstance(body, dict):
+            self.fail(f"Expected a JSON object, got {type(body).__name__}.")
+        return body
+
+    def assert_array_response(self, response, expected_status) -> list[Any]:
+        body = self.assert_json_response(response, expected_status)
+        if not isinstance(body, list):
+            self.fail(f"Expected a JSON array, got {type(body).__name__}.")
+        return body
+
+    def assert_error_object(self, response, expected_status) -> dict[str, Any]:
+        body = self.assert_object_response(response, expected_status)
         self.assertTrue(body)
         return body
 
@@ -92,8 +106,9 @@ class LiveAPIContractTests(unittest.TestCase):
         )
         self.assertIsInstance(body.get("detail"), str)
 
-    def assert_string_fields(self, data, fields):
-        self.assertIsInstance(data, dict)
+    def assert_string_fields(self, data: Any, fields):
+        if not isinstance(data, dict):
+            self.fail(f"Expected a JSON object, got {type(data).__name__}.")
         for field in fields:
             self.assertIn(field, data)
             self.assertIsInstance(data[field], str)
@@ -104,6 +119,22 @@ class LiveAPIContractTests(unittest.TestCase):
             "/api/users/login/",
             {"username": self.username, "password": self.password},
         )
+
+    def register_test_user(self):
+        response = self.assert_object_response(
+            self.client.request(
+                "POST",
+                "/api/users/register/",
+                {
+                    "username": self.username,
+                    "email": f"{self.username}@example.test",
+                    "password": self.password,
+                },
+            ),
+            201,
+        )
+        self.assert_string_fields(response, ("message",))
+        return response
 
     def delete_test_user(self):
         status_code, _, _ = self.client.request(
@@ -135,9 +166,83 @@ class LiveAPIContractTests(unittest.TestCase):
         )
         self.assertIsNotNone(self.client.csrf_token)
 
+    def test_registration(self):
+        try:
+            self.register_test_user()
+            self.assert_error_object(
+                self.client.request("POST", "/api/users/register/", {}),
+                400,
+            )
+            self.assert_error_object(
+                self.client.request(
+                    "POST",
+                    "/api/users/register/",
+                    {
+                        "username": self.username,
+                        "email": f"{self.username}@example.test",
+                        "password": self.password,
+                    },
+                ),
+                400,
+            )
+            self.assert_method_not_allowed("GET", "/api/users/register/")
+        finally:
+            self.delete_test_user()
+
+    def test_login(self):
+        try:
+            self.register_test_user()
+            logged_in = self.assert_object_response(self.login(), 200)
+            self.assert_string_fields(logged_in, ("message",))
+            self.refresh_csrf()
+            invalid_login = self.assert_error_object(
+                self.client.request(
+                    "POST",
+                    "/api/users/login/",
+                    {"username": self.username, "password": "incorrect-password"},
+                    authenticated=True,
+                ),
+                401,
+            )
+            self.assertIsInstance(invalid_login.get("error"), str)
+            self.assert_method_not_allowed(
+                "GET",
+                "/api/users/login/",
+                authenticated=True,
+            )
+        finally:
+            self.delete_test_user()
+
+    def test_logout(self):
+        try:
+            self.register_test_user()
+            self.assert_json_response(self.login(), 200)
+            self.refresh_csrf()
+            logged_out = self.assert_object_response(
+                self.client.request("POST", "/api/users/logout/", authenticated=True),
+                200,
+            )
+            self.assert_string_fields(logged_out, ("message",))
+            self.assert_not_acceptable(
+                "POST",
+                "/api/users/logout/",
+                authenticated=True,
+            )
+            self.assert_method_not_allowed(
+                "GET",
+                "/api/users/logout/",
+                authenticated=True,
+            )
+            self.assert_error_object(
+                self.client.request("GET", "/api/users/me/"),
+                401,
+            )
+        finally:
+            self.delete_test_user()
+
     def test_all_api_routes_and_methods(self):
         try:
-            root = self.assert_json_response(
+            root = self.assert_object_response(
                 self.client.request("GET", "/api/"),
                 200,
             )
@@ -145,7 +250,7 @@ class LiveAPIContractTests(unittest.TestCase):
             self.assert_not_acceptable("GET", "/api/")
             self.assert_method_not_allowed("POST", "/api/")
 
-            csrf = self.assert_json_response(
+            csrf = self.assert_object_response(
                 self.client.request("GET", "/api/users/csrf/"),
                 200,
             )
@@ -180,54 +285,11 @@ class LiveAPIContractTests(unittest.TestCase):
                     401,
                 )
 
-            register_data = {
-                "username": self.username,
-                "email": f"{self.username}@example.test",
-                "password": self.password,
-            }
-            registered = self.assert_json_response(
-                self.client.request("POST", "/api/users/register/", register_data),
-                201,
-            )
-            self.assert_string_fields(registered, ("message",))
-            self.assert_error_object(
-                self.client.request("POST", "/api/users/register/", {}),
-                400,
-            )
-            self.assert_error_object(
-                self.client.request("POST", "/api/users/register/", register_data),
-                400,
-            )
-            self.assert_method_not_allowed("GET", "/api/users/register/")
-
-            logged_in = self.assert_json_response(self.login(), 200)
-            self.assert_string_fields(logged_in, ("message",))
-            self.refresh_csrf()
-            invalid_login = self.assert_error_object(
-                self.client.request(
-                    "POST",
-                    "/api/users/login/",
-                    {"username": self.username, "password": "incorrect-password"},
-                    authenticated=True,
-                ),
-                401,
-            )
-            self.assertIsInstance(invalid_login.get("error"), str)
-            logged_out = self.assert_json_response(
-                self.client.request("POST", "/api/users/logout/", authenticated=True),
-                200,
-            )
-            self.assert_string_fields(logged_out, ("message",))
-            self.assert_not_acceptable(
-                "POST",
-                "/api/users/logout/",
-                authenticated=True,
-            )
-            self.assert_method_not_allowed("GET", "/api/users/logout/")
+            self.register_test_user()
             self.assert_json_response(self.login(), 200)
             self.refresh_csrf()
 
-            availability = self.assert_json_response(
+            availability = self.assert_object_response(
                 self.client.request(
                     "GET",
                     f"/api/users/check-username/?{urllib.parse.urlencode({'username': self.username})}",
@@ -240,7 +302,7 @@ class LiveAPIContractTests(unittest.TestCase):
                 400,
             )
 
-            account = self.assert_json_response(
+            account = self.assert_object_response(
                 self.client.request("GET", "/api/users/me/"),
                 200,
             )
@@ -265,7 +327,7 @@ class LiveAPIContractTests(unittest.TestCase):
                 "location": "Stockholm",
                 "website": "https://example.test",
             }
-            put_result = self.assert_json_response(
+            put_result = self.assert_object_response(
                 self.client.request(
                     "PUT",
                     "/api/users/me/",
@@ -284,7 +346,7 @@ class LiveAPIContractTests(unittest.TestCase):
                 ),
                 400,
             )
-            patch_result = self.assert_json_response(
+            patch_result = self.assert_object_response(
                 self.client.request(
                     "PATCH",
                     "/api/users/me/",
@@ -304,14 +366,14 @@ class LiveAPIContractTests(unittest.TestCase):
                 400,
             )
 
-            saved_events = self.assert_json_response(
+            saved_events = self.assert_array_response(
                 self.client.request("GET", "/api/users/saved-events/"),
                 200,
             )
             self.assertIsInstance(saved_events, list)
 
             for search_path in ("/api/events/search", "/api/events/search/"):
-                search = self.assert_json_response(
+                search = self.assert_object_response(
                     self.client.request("GET", f"{search_path}?q=api-contract-no-match"),
                     200,
                 )
@@ -328,7 +390,7 @@ class LiveAPIContractTests(unittest.TestCase):
                     authenticated=True,
                 )
 
-            event_collection = self.assert_json_response(
+            event_collection = self.assert_object_response(
                 self.client.request("GET", "/api/events/"),
                 200,
             )
@@ -347,6 +409,8 @@ class LiveAPIContractTests(unittest.TestCase):
 
             event = event_collection["features"][0]
             event_properties = event.get("properties")
+            if not isinstance(event_properties, dict):
+                self.fail("Expected event properties to be a JSON object.")
             self.assert_string_fields(
                 event_properties,
                 (
@@ -364,7 +428,7 @@ class LiveAPIContractTests(unittest.TestCase):
             self.assertEqual(event.get("type"), "Feature")
             self.assertIsInstance(event.get("geometry"), dict)
             event_id = event["id"]
-            event_detail = self.assert_json_response(
+            event_detail = self.assert_object_response(
                 self.client.request("GET", f"/api/events/{event_id}"),
                 200,
             )
@@ -381,7 +445,7 @@ class LiveAPIContractTests(unittest.TestCase):
                 authenticated=True,
             )
 
-            saved = self.assert_json_response(
+            saved = self.assert_object_response(
                 self.client.request(
                     "POST",
                     f"/api/users/saved-events/{event_id}/",
@@ -399,7 +463,7 @@ class LiveAPIContractTests(unittest.TestCase):
                 404,
             )
             self.assertIsInstance(missing_event.get("error"), str)
-            saved_events = self.assert_json_response(
+            saved_events = self.assert_array_response(
                 self.client.request("GET", "/api/users/saved-events/"),
                 200,
             )
