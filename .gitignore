@@ -10,3 +10,4 @@ __pycache__/
 # User-uploaded media
 /backend/media/
 concert-map-server_key.pem
+/frontend/.next-e2e
