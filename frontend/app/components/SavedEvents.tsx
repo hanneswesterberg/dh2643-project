@@ -1,14 +1,38 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { getSavedEvents, removeSavedEvent } from './Lib/userAPI';
 import type { SavedEvent } from './userModel';
+
+type EventSortOrder = 'name' | 'date' | 'added';
 
 export default function SavedEvents() {
   const [events, setEvents] = useState<SavedEvent[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [removingEventId, setRemovingEventId] = useState<number | null>(null);
+  const [sortOrder, setSortOrder] = useState<EventSortOrder>('name');
+
+  const sortedEvents = [...events].sort((first, second) => {
+    let comparison = 0;
+    if (sortOrder === 'name') {
+      comparison = first.name.localeCompare(second.name, undefined, {
+        sensitivity: 'base',
+      });
+    } else if (sortOrder === 'date') {
+      comparison = Date.parse(first.start) - Date.parse(second.start);
+    } else if (first.added_at === null && second.added_at === null) {
+      comparison = 0;
+    } else if (first.added_at === null) {
+      comparison = 1;
+    } else if (second.added_at === null) {
+      comparison = -1;
+    } else {
+      comparison = Date.parse(second.added_at) - Date.parse(first.added_at);
+    }
+    return comparison || first.id - second.id;
+  });
 
   useEffect(() => {
     let isCurrent = true;
@@ -55,13 +79,43 @@ export default function SavedEvents() {
 
   return (
     <section className="mx-auto mt-8 w-full max-w-3xl px-6 pb-10">
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <Link
+          href="/"
+          className="inline-block rounded border border-gray-300 px-4 py-2 transition-colors hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 dark:border-gray-600 dark:hover:bg-gray-800"
+        >
+          Go Back
+        </Link>
+        {!loading && events.length > 0 && (
+          <div className="flex items-center gap-2">
+            <label htmlFor="saved-events-sort" className="font-medium">
+              Sort by
+            </label>
+            <select
+              id="saved-events-sort"
+              value={sortOrder}
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                if (value === 'name' || value === 'date' || value === 'added') {
+                  setSortOrder(value);
+                }
+              }}
+              className="saved-events-sort rounded border px-3 py-2"
+            >
+              <option value="name">Name (A-Z)</option>
+              <option value="date">Event date</option>
+              <option value="added">Recently added</option>
+            </select>
+          </div>
+        )}
+      </div>
       {loading && <p role="status">Loading your events...</p>}
       {error && <p role="alert">{error}</p>}
       {!loading && events.length === 0 && !error && (
         <p>You have not added any events yet.</p>
       )}
       <ul className="space-y-3">
-        {events.map((event) => (
+        {sortedEvents.map((event) => (
           <li
             key={event.id}
             className="saved-event-card flex flex-wrap items-center justify-between gap-4 rounded border border-gray-300 p-4 dark:border-gray-600"
@@ -105,7 +159,7 @@ export default function SavedEvents() {
                 type="button"
                 onClick={() => void removeEvent(event.id)}
                 disabled={removingEventId === event.id}
-                className="event-remove-button rounded border border-red-600 bg-transparent px-3 py-2 font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                className="event-remove-button rounded border border-red-600 bg-transparent px-3 py-2 font-semibold text-red-600 hover:cursor-pointer hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {removingEventId === event.id ? 'Removing...' : 'Remove'}
               </button>

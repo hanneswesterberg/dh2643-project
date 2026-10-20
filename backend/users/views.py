@@ -152,8 +152,15 @@ class SavedEventsView(APIView):
         saved_events = profile.saved_events.select_related('venue').prefetch_related(
             'artists', 'artists__genres',
         )
+        added_at_by_event_id = dict(
+            profile.saved_event_bookmarks.values_list('event_id', 'added_at'),
+        )
         return Response(
-            SavedEventSerializer(saved_events, many=True).data,
+            SavedEventSerializer(
+                saved_events,
+                many=True,
+                context={'added_at_by_event_id': added_at_by_event_id},
+            ).data,
             status=status.HTTP_200_OK,
         )
 

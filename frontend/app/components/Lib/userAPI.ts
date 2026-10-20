@@ -83,6 +83,22 @@ export async function logOut() {
     return data;
 }
 
+export async function deleteAccount() {
+    const response = await fetch(
+        `${API}/me/`,
+        {
+            method: "DELETE",
+            credentials: "include",
+            headers: await getCSRFHeader(),
+        }
+    );
+
+    if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error ?? "Could not delete your account.");
+    }
+}
+
 export async function removeSavedEvent(eventId: number) {
     const response = await fetch(
         `${API}/saved-events/${eventId}/`,

@@ -200,7 +200,7 @@ export default function SideBar({
               type="button"
               onClick={handleLogout}
               disabled={isSubmitting}
-              className="w-full rounded bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              className="w-full cursor-pointer rounded bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? 'Signing out...' : 'Sign out'}
             </button>
@@ -285,7 +285,7 @@ export default function SideBar({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+            className="w-full cursor-pointer rounded bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting
               ? (isRegistering ? 'Creating account...' : 'Logging in...')
