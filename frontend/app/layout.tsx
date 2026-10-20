@@ -7,8 +7,6 @@ import "./components/Navbar.css";
 import "./components/Profile.css";
 import "./components/Sidebar.css";
 import "./components/SavedEvents.css";
-import "./components/LoginPopup.css";
-import "./components/NavigationLinks.css";
 import "./components/SearchBar.css";
 import SystemMessageProvider from "./components/SystemMessageProvider";
 //import NavBar from "./components/navbar/Navbar";
