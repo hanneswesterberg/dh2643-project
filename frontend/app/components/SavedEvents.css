@@ -52,6 +52,26 @@
   padding: 0.5rem 0.75rem;
   border: 1px solid #d1d5db;
   border-radius: 0.25rem;
+  transition: background-color 150ms ease;
+}
+
+.saved-events__sort-select:hover {
+  background: #f3f4f6;
+}
+
+.profile-page--dark .saved-events__sort-select {
+  border-color: #4b5563;
+  background: transparent;
+  color: inherit;
+}
+
+.profile-page--dark .saved-events__sort-select:hover {
+  background: #1f2937;
+}
+
+.profile-page--dark .saved-events__sort-select option {
+  background: #1f2937;
+  color: inherit;
 }
 
 .saved-events__list {
