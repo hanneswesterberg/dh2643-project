@@ -98,14 +98,12 @@ export default function SideBar({
     <div
       aria-hidden={!isOpen}
       inert={!isOpen}
-      className="sidebar-panel fixed right-0 top-[80px] z-[1100] h-[calc(100vh-80px)] overflow-hidden"
-      data-theme={isDarkMode ? 'dark' : 'light'}
-      data-open={isOpen}
+      className={`sidebar-panel${isOpen ? ' sidebar-panel--open' : ''}${isDarkMode ? ' sidebar-panel--dark' : ''}`}
     >
-      <div className="h-full w-80 overflow-y-auto p-6">
-        <div className={`${currentUser ? 'mb-2' : 'mb-6'} flex items-center justify-between`}>
+      <div className="sidebar-panel__content">
+        <div className={`sidebar-panel__header${currentUser ? ' sidebar-panel__header--user' : ''}`}>
           {!currentUser && (
-            <h2 id="sign-in-heading" className="text-xl font-semibold">
+            <h2 id="sign-in-heading" className="sidebar-panel__title">
               {isRegistering ? 'Create account' : 'Sign in'}
             </h2>
           )}
@@ -113,18 +111,18 @@ export default function SideBar({
             type="button"
             onClick={onClose}
             aria-label="Close sign-in panel"
-            className={`sidebar-close rounded px-2 py-1 text-2xl leading-none ${currentUser ? 'ml-auto' : ''}`}
+            className={`sidebar-panel__close${currentUser ? ' sidebar-panel__close--user' : ''}`}
           >
             &times;
           </button>
         </div>
         {currentUser ? (
-          <div className="space-y-4">
-            <div className="flex flex-col items-start gap-[20px] text-left">
+          <div className="sidebar-panel__user">
+            <div className="sidebar-panel__profile">
               <Link
                 href="/profile"
                 aria-label="Open Profile Settings"
-                className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+                className="sidebar-panel__profile-link"
               >
                 {currentUser.profile_picture ? (
                   <>
@@ -132,11 +130,11 @@ export default function SideBar({
                     <img
                       src={currentUser.profile_picture}
                       alt=""
-                      className="h-[150px] w-[150px] object-cover"
+                      className="sidebar-panel__picture"
                     />
                   </>
                 ) : (
-                  <div className="grid h-[150px] w-[150px] place-items-center bg-[#fbbf24] text-[#171717]">
+                  <div className="sidebar-panel__avatar">
                     <svg
                       viewBox="0 0 24 24"
                       width="84"
@@ -154,37 +152,37 @@ export default function SideBar({
                   </div>
                 )}
               </Link>
-              <div className="space-y-1">
+              <div className="sidebar-panel__identity">
                 {currentUser.display_name && (
-                  <p className="text-xl font-semibold">{currentUser.display_name}</p>
+                  <p className="sidebar-panel__display-name">{currentUser.display_name}</p>
                 )}
-                <p className={currentUser.display_name ? 'text-sm' : 'text-xl font-semibold'}>
+                <p className={currentUser.display_name ? 'sidebar-panel__username sidebar-panel__username--with-name' : 'sidebar-panel__username'}>
                   @{currentUser.username}
                 </p>
               </div>
               {currentUser.bio && (
                 <div
-                  className="sidebar-bio w-full rounded border p-3 text-sm"
+                  className="sidebar-panel__bio"
                 >
                   <div
-                    className="break-words"
+                    className="sidebar-panel__bio-text"
                     dangerouslySetInnerHTML={{ __html: currentUser.bio }}
                   />
                 </div>
               )}
             </div>
-            <div className="text-center">
+            <div className="sidebar-panel__action">
               <Link
                 href="/profile/events"
-                className="block w-full rounded bg-blue-600 px-4 py-2 text-center font-semibold text-white hover:bg-blue-700"
+                className="sidebar-panel__primary-action"
               >
                 Your Events
               </Link>
             </div>
-            <div className="text-center">
+            <div className="sidebar-panel__action">
               <Link
                 href="/profile"
-                className="block w-full rounded bg-blue-600 px-4 py-2 text-center font-semibold text-white hover:bg-blue-700"
+                className="sidebar-panel__primary-action"
               >
                 Profile Settings
               </Link>
@@ -193,14 +191,14 @@ export default function SideBar({
               type="button"
               onClick={handleLogout}
               disabled={isSubmitting}
-              className="w-full cursor-pointer rounded bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="sidebar-panel__primary-action"
             >
               {isSubmitting ? 'Signing out...' : 'Sign out'}
             </button>
           </div>
         ) : (
-        <form onSubmit={handleSubmit} aria-labelledby="sign-in-heading" className="space-y-4">
-          <label className="block">
+        <form onSubmit={handleSubmit} aria-labelledby="sign-in-heading" className="sidebar-panel__form">
+          <label className="sidebar-panel__field">
             {isRegistering ? 'Username' : 'Username or email'}
             <input
               type="text"
@@ -209,11 +207,11 @@ export default function SideBar({
               required
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              className="sidebar-input mt-1 block w-full rounded border p-2"
+              className="sidebar-panel__input"
             />
           </label>
           {isRegistering && (
-            <label className="block">
+            <label className="sidebar-panel__field">
               Email
               <input
                 type="email"
@@ -222,11 +220,11 @@ export default function SideBar({
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="sidebar-input mt-1 block w-full rounded border p-2"
+                className="sidebar-panel__input"
               />
             </label>
           )}
-          <label className="block">
+          <label className="sidebar-panel__field">
             Password
             <input
               type="password"
@@ -235,11 +233,11 @@ export default function SideBar({
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="sidebar-input mt-1 block w-full rounded border p-2"
+              className="sidebar-panel__input"
             />
           </label>
           {isRegistering && (
-            <label className="block">
+            <label className="sidebar-panel__field">
               Confirm password
               <input
                 type="password"
@@ -248,14 +246,14 @@ export default function SideBar({
                 required
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                className="sidebar-input mt-1 block w-full rounded border p-2"
+                className="sidebar-panel__input"
               />
             </label>
           )}
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full cursor-pointer rounded bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="sidebar-panel__primary-action"
           >
             {isSubmitting
               ? (isRegistering ? 'Creating account...' : 'Logging in...')
@@ -264,7 +262,7 @@ export default function SideBar({
           <button
             type="button"
             onClick={() => changeMode(isRegistering ? 'login' : 'register')}
-            className="sidebar-mode-toggle w-full text-center underline"
+            className="sidebar-panel__mode-toggle"
           >
             {isRegistering ? 'Back to sign in' : 'Register a new account'}
           </button>
