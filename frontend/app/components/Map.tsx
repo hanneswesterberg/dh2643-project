@@ -824,7 +824,7 @@ export default function ConcertMap({
       {(loading || (events !== null && events.features.length === 0)) && (
         <div
           role="status"
-          className="concert-map__status"
+          className={`system-message ${loading ? 'system-message--loading' : 'system-message--error'}`}
         >
           {loading ? 'Loading events…' : 'No events available from the API.'}
         </div>
@@ -837,7 +837,7 @@ export default function ConcertMap({
             style={
               eventDetails?.imageUrl
                 ? {
-                    backgroundImage: `linear-gradient(rgba(${isDarkMode ? '31, 41, 55' : '255, 255, 255'}, 0.6), rgba(${isDarkMode ? '31, 41, 55' : '255, 255, 255'}, 0.6)), url(${JSON.stringify(eventDetails.imageUrl)})`,
+                    backgroundImage: `linear-gradient(rgba(${isDarkMode ? '31, 41, 55' : '255, 255, 255'}, 0.8), rgba(${isDarkMode ? '31, 41, 55' : '255, 255, 255'}, 0.8)), url(${JSON.stringify(eventDetails.imageUrl)})`,
                     backgroundPosition: 'center',
                     backgroundSize: 'cover',
                   }
