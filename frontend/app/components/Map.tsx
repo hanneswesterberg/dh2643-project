@@ -57,6 +57,7 @@ type VenueGroup = {
 };
 
 const EVENTS_PER_PAGE = 12;
+const VENUE_MERGE_DISTANCE_METERS = 50;
 
 function getMarkerColor(isDarkMode: boolean): string {
   return isDarkMode ? 'rgb(255, 132, 0)' : '#2563eb';
@@ -109,13 +110,23 @@ function getEventGenres(event: Event): string[] {
 }
 
 function groupEventsByVenue(events: Event[]): VenueGroup[] {
-  const groups = new Map<string, VenueGroup>();
+  const groups: VenueGroup[] = [];
 
   for (const event of events) {
     const name = event.properties.venue_name.trim();
     const coordinates = event.geometry.coordinates;
     const key = coordinates.join(',');
-    const group = groups.get(key);
+    const nameRoot = getVenueNameRoot(name);
+    const group =
+      groups.find((candidate) => candidate.key === key) ??
+      groups.find(
+        (candidate) =>
+          nameRoot.length >= 4 &&
+          getVenueNameRoot(candidate.stageNames[0]) === nameRoot &&
+          getDistanceMeters(candidate.coordinates, coordinates) <=
+            VENUE_MERGE_DISTANCE_METERS
+      );
+
     if (group) {
       group.events.push(event);
       if (
@@ -129,7 +140,7 @@ function groupEventsByVenue(events: Event[]): VenueGroup[] {
         group.name = name;
       }
     } else {
-      groups.set(key, {
+      groups.push({
         key,
         name,
         coordinates,
@@ -139,7 +150,58 @@ function groupEventsByVenue(events: Event[]): VenueGroup[] {
     }
   }
 
-  return Array.from(groups.values());
+  return groups;
+}
+
+function getVenueNameRoot(name: string): string {
+  return name
+    .split(',')[0]
+    .trim()
+    .split(/[\s–—-]+/)[0]
+    .toLocaleLowerCase();
+}
+
+function getDistanceMeters(first: number[], second: number[]): number {
+  const [firstLongitude, firstLatitude] = first;
+  const [secondLongitude, secondLatitude] = second;
+  const radians = (degrees: number) => (degrees * Math.PI) / 180;
+  const latitudeDifference = radians(secondLatitude - firstLatitude);
+  const longitudeDifference = radians(secondLongitude - firstLongitude);
+  const haversine =
+    Math.sin(latitudeDifference / 2) ** 2 +
+    Math.cos(radians(firstLatitude)) *
+      Math.cos(radians(secondLatitude)) *
+      Math.sin(longitudeDifference / 2) ** 2;
+
+  return 6_371_000 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+}
+
+function getSharedStageLabel(stageNames: string[], fallback: string): string {
+  const stageWords = stageNames.map((stageName) =>
+    stageName
+      .split(',')[0]
+      .trim()
+      .split(/[\s–—-]+/)
+      .filter(Boolean)
+  );
+  const firstStageWords = stageWords[0];
+  if (!firstStageWords) return fallback;
+
+  let sharedWordCount = 0;
+  while (
+    sharedWordCount < firstStageWords.length &&
+    stageWords.every(
+      (words) =>
+        words[sharedWordCount]?.toLocaleLowerCase() ===
+        firstStageWords[sharedWordCount].toLocaleLowerCase()
+    )
+  ) {
+    sharedWordCount += 1;
+  }
+
+  return sharedWordCount > 0
+    ? firstStageWords.slice(0, sharedWordCount).join(' ')
+    : fallback;
 }
 
 interface ConcertMapProps {
@@ -183,7 +245,6 @@ export default function ConcertMap({
   const [animateWheelEvents, setAnimateWheelEvents] = useState(false);
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [venueEventsPage, setVenueEventsPage] = useState(0);
-  const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [popupElement, setPopupElement] = useState<HTMLDivElement | null>(null);
   const isDarkModeRef = useRef(isDarkMode);
@@ -325,16 +386,6 @@ export default function ConcertMap({
 
   useEffect(() => {
     if (!mapRef.current) return;
-
-    const originalGetContext = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function (
-      this: HTMLCanvasElement, contextId: string, options?: any
-    ) {
-      if (contextId === '2d') {
-        options = { ...options, willReadFrequently: true };
-      }
-      return originalGetContext.call(this, contextId, options);
-    } as any;
 
     const markerSource = new VectorSource<Feature<Point>>();
     markerSourceRef.current = markerSource;
@@ -564,7 +615,15 @@ export default function ConcertMap({
         selectedEventRef.current = null;
         setSelectedEvent(null);
       }
-      popup.setPosition(fromLonLat(venue.coordinates));
+      const venueCoordinate = fromLonLat(venue.coordinates);
+      const view = map.getView();
+      const currentZoom = view.getZoom() ?? 11;
+      view.animate({
+        center: venueCoordinate,
+        zoom: Math.max(currentZoom, 13),
+        duration: 250,
+      });
+      popup.setPosition(venueCoordinate);
     };
     map.on('singleclick', handleMapClick);
 
@@ -774,6 +833,16 @@ export default function ConcertMap({
         createPortal(
           <div
             className={`map-popup${selectedVenue && !selectedEvent ? ' map-popup--venue map-venue' : ' map-popup--event'}${isDarkMode ? ' map-popup--dark' : ''}`}
+            data-theme={isDarkMode ? 'dark' : 'light'}
+            style={
+              eventDetails?.imageUrl
+                ? {
+                    backgroundImage: `linear-gradient(rgba(${isDarkMode ? '31, 41, 55' : '255, 255, 255'}, 0.6), rgba(${isDarkMode ? '31, 41, 55' : '255, 255, 255'}, 0.6)), url(${JSON.stringify(eventDetails.imageUrl)})`,
+                    backgroundPosition: 'center',
+                    backgroundSize: 'cover',
+                  }
+                : undefined
+            }
           >
         {selectedEvent && eventDetails ? (
           <>
@@ -786,9 +855,9 @@ export default function ConcertMap({
                   popupRef.current?.setPositioning('center-center');
                   popupRef.current?.setOffset([0, 0]);
                 }}
-                className="map-popup__link map-popup__back"
+                className="map-popup__back-button"
               >
-                Back to {selectedVenue.name} events
+                Back to venue
               </button>
             )}
             <div>
@@ -801,13 +870,7 @@ export default function ConcertMap({
                 ? eventDetails.artists.map((artist, index) => (
                     <span key={`${artist}-${index}`}>
                       {index > 0 && ', '}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedArtist(artist)}
-                        className="map-popup__link"
-                      >
-                        {artist}
-                      </button>
+                      {artist}
                     </span>
                   ))
                 : 'Unavailable'}
@@ -825,31 +888,17 @@ export default function ConcertMap({
                 ? new Date(eventDetails.end).toLocaleString()
                 : 'Unavailable'}
             </div>
-            {eventDetails.ticketUrl && (
-              <div>
+            <div className="map-popup__actions">
+              {eventDetails.ticketUrl && (
                 <a
                   href={eventDetails.ticketUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="map-popup__link"
+                  className="map-popup__ticket-button"
                 >
-                  Tickets
+                  Get tickets
                 </a>
-              </div>
-            )}
-            {eventDetails.imageUrl && (
-              <div>
-                <a
-                  href={eventDetails.imageUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="map-popup__link"
-                >
-                  Event image
-                </a>
-              </div>
-            )}
-            <div className="map-popup__save">
+              )}
               <button
                 type="button"
                 onClick={() => void handleSaveEvent(eventDetails.id)}
@@ -879,11 +928,11 @@ export default function ConcertMap({
                       selectedStage.toLocaleLowerCase()
                   )
                 : selectedVenue.events;
-              const centerMarkerLabel =
-                selectedStage ??
-                (selectedVenue.stageNames.length > 1
-                  ? 'All stages'
-                  : selectedVenue.name);
+              const allStagesLabel = getSharedStageLabel(
+                selectedVenue.stageNames,
+                selectedVenue.name
+              );
+              const centerMarkerLabel = selectedStage ?? allStagesLabel;
               const pageCount = Math.ceil(
                 stageEvents.length / EVENTS_PER_PAGE
               );
@@ -976,7 +1025,7 @@ export default function ConcertMap({
                         }}
                         className="map-venue__stage-select"
                       >
-                        <option value="">All stages</option>
+                        <option value="">{allStagesLabel}</option>
                         {selectedVenue.stageNames.map((stageName) => (
                           <option key={stageName} value={stageName}>
                             {stageName}
@@ -1051,31 +1100,6 @@ export default function ConcertMap({
           </div>,
           popupElement
         )}
-      {selectedArtist && (
-        <div
-          onClick={() => setSelectedArtist(null)}
-          className="map-artist-overlay"
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="artist-dialog-title"
-            onClick={(event) => event.stopPropagation()}
-            className={`map-artist-dialog${isDarkMode ? ' map-artist-dialog--dark' : ''}`}
-          >
-            <button
-              type="button"
-              aria-label="Close artist details"
-              onClick={() => setSelectedArtist(null)}
-              className="map-artist-dialog__close"
-            >
-              ×
-            </button>
-            <h2 id="artist-dialog-title">{selectedArtist}</h2>
-            <p>Artist information will appear here.</p>
-          </section>
-        </div>
-      )}
     </div>
   );
 }

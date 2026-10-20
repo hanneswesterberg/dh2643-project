@@ -91,6 +91,7 @@
   max-height: min(70vh, 480px);
   overflow-y: auto;
   padding: 16px 18px;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 2px 12px rgb(0 0 0 / 25%);
@@ -109,7 +110,9 @@
   color: #f9fafb;
 }
 
+.map-popup--event[data-theme='dark'],
 .map-popup--event.map-popup--dark {
+  border-color: #6b7280;
   background: #1f2937;
 }
 
@@ -127,15 +130,47 @@
   color: #93c5fd;
 }
 
-.map-popup__back {
+.map-popup__back-button {
+  display: inline-block;
   margin-bottom: 8px;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
 }
 
-.map-popup__save {
+.concert-map[data-theme='dark'] .map-popup__back-button {
+  background: rgb(255 132 0);
+}
+
+.map-popup__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-top: 10px;
+  width: 100%;
+}
+
+.map-popup__ticket-button {
+  display: inline-block;
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.concert-map[data-theme='dark'] .map-popup__ticket-button {
+  background: rgb(255 132 0);
 }
 
 .map-popup__save-button {
+  margin-left: auto;
   padding: 8px 10px;
   border: 0;
   border-radius: 6px;
@@ -206,7 +241,6 @@
   left: 50%;
   width: 76px;
   height: 76px;
-  transform: translate(-50%, -50%);
   padding: 8px;
   border: 4px solid #ffffff;
   box-shadow: 0 3px 12px rgb(0 0 0 / 40%);
