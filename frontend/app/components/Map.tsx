@@ -57,6 +57,7 @@ type VenueGroup = {
 };
 
 const EVENTS_PER_PAGE = 12;
+const VENUE_MERGE_DISTANCE_METERS = 50;
 
 function getMarkerColor(isDarkMode: boolean): string {
   return isDarkMode ? 'rgb(255, 132, 0)' : '#2563eb';
@@ -109,13 +110,23 @@ function getEventGenres(event: Event): string[] {
 }
 
 function groupEventsByVenue(events: Event[]): VenueGroup[] {
-  const groups = new Map<string, VenueGroup>();
+  const groups: VenueGroup[] = [];
 
   for (const event of events) {
     const name = event.properties.venue_name.trim();
     const coordinates = event.geometry.coordinates;
     const key = coordinates.join(',');
-    const group = groups.get(key);
+    const nameRoot = getVenueNameRoot(name);
+    const group =
+      groups.find((candidate) => candidate.key === key) ??
+      groups.find(
+        (candidate) =>
+          nameRoot.length >= 4 &&
+          getVenueNameRoot(candidate.stageNames[0]) === nameRoot &&
+          getDistanceMeters(candidate.coordinates, coordinates) <=
+            VENUE_MERGE_DISTANCE_METERS
+      );
+
     if (group) {
       group.events.push(event);
       if (
@@ -129,7 +140,7 @@ function groupEventsByVenue(events: Event[]): VenueGroup[] {
         group.name = name;
       }
     } else {
-      groups.set(key, {
+      groups.push({
         key,
         name,
         coordinates,
@@ -139,7 +150,58 @@ function groupEventsByVenue(events: Event[]): VenueGroup[] {
     }
   }
 
-  return Array.from(groups.values());
+  return groups;
+}
+
+function getVenueNameRoot(name: string): string {
+  return name
+    .split(',')[0]
+    .trim()
+    .split(/[\s–—-]+/)[0]
+    .toLocaleLowerCase();
+}
+
+function getDistanceMeters(first: number[], second: number[]): number {
+  const [firstLongitude, firstLatitude] = first;
+  const [secondLongitude, secondLatitude] = second;
+  const radians = (degrees: number) => (degrees * Math.PI) / 180;
+  const latitudeDifference = radians(secondLatitude - firstLatitude);
+  const longitudeDifference = radians(secondLongitude - firstLongitude);
+  const haversine =
+    Math.sin(latitudeDifference / 2) ** 2 +
+    Math.cos(radians(firstLatitude)) *
+      Math.cos(radians(secondLatitude)) *
+      Math.sin(longitudeDifference / 2) ** 2;
+
+  return 6_371_000 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+}
+
+function getSharedStageLabel(stageNames: string[], fallback: string): string {
+  const stageWords = stageNames.map((stageName) =>
+    stageName
+      .split(',')[0]
+      .trim()
+      .split(/[\s–—-]+/)
+      .filter(Boolean)
+  );
+  const firstStageWords = stageWords[0];
+  if (!firstStageWords) return fallback;
+
+  let sharedWordCount = 0;
+  while (
+    sharedWordCount < firstStageWords.length &&
+    stageWords.every(
+      (words) =>
+        words[sharedWordCount]?.toLocaleLowerCase() ===
+        firstStageWords[sharedWordCount].toLocaleLowerCase()
+    )
+  ) {
+    sharedWordCount += 1;
+  }
+
+  return sharedWordCount > 0
+    ? firstStageWords.slice(0, sharedWordCount).join(' ')
+    : fallback;
 }
 
 interface ConcertMapProps {
@@ -325,16 +387,6 @@ export default function ConcertMap({
 
   useEffect(() => {
     if (!mapRef.current) return;
-
-    const originalGetContext = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function (
-      this: HTMLCanvasElement, contextId: string, options?: any
-    ) {
-      if (contextId === '2d') {
-        options = { ...options, willReadFrequently: true };
-      }
-      return originalGetContext.call(this, contextId, options);
-    } as any;
 
     const markerSource = new VectorSource<Feature<Point>>();
     markerSourceRef.current = markerSource;
@@ -879,11 +931,11 @@ export default function ConcertMap({
                       selectedStage.toLocaleLowerCase()
                   )
                 : selectedVenue.events;
-              const centerMarkerLabel =
-                selectedStage ??
-                (selectedVenue.stageNames.length > 1
-                  ? 'All stages'
-                  : selectedVenue.name);
+              const allStagesLabel = getSharedStageLabel(
+                selectedVenue.stageNames,
+                selectedVenue.name
+              );
+              const centerMarkerLabel = selectedStage ?? allStagesLabel;
               const pageCount = Math.ceil(
                 stageEvents.length / EVENTS_PER_PAGE
               );
@@ -976,7 +1028,7 @@ export default function ConcertMap({
                         }}
                         className="map-venue__stage-select"
                       >
-                        <option value="">All stages</option>
+                        <option value="">{allStagesLabel}</option>
                         {selectedVenue.stageNames.map((stageName) => (
                           <option key={stageName} value={stageName}>
                             {stageName}
