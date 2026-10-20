@@ -1,7 +1,17 @@
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { getCurrentUser, logIn, logOut, signUp } from '../Lib/userAPI';
 import { useSystemMessage } from '../SystemMessageProvider';
+import { UserProfileData } from '../userModel';
+
+type SideBarProps = {
+  isOpen: boolean;
+  isDarkMode: boolean;
+  onClose: () => void;
+  currentUser: UserProfileData | null;
+  onAuthenticated: (user: UserProfileData) => void;
+  onLoggedOut: () => void;
+};
 
 export default function SideBar({
   isOpen,
@@ -10,7 +20,7 @@ export default function SideBar({
   currentUser,
   onAuthenticated,
   onLoggedOut,
-}) {
+}: SideBarProps) {
   const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -19,7 +29,7 @@ export default function SideBar({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const showSystemMessage = useSystemMessage();
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (mode === 'register' && password !== confirmPassword) {
       showSystemMessage('Passwords do not match.', 'error');
@@ -61,7 +71,7 @@ export default function SideBar({
     }
   }
 
-  function changeMode(nextMode) {
+  function changeMode(nextMode : string) {
     setMode(nextMode);
     setPassword('');
     setConfirmPassword('');
@@ -87,14 +97,14 @@ export default function SideBar({
     <div
       aria-hidden={!isOpen}
       inert={!isOpen}
-      className="sidebar-panel"
+      className="sidebar-panel fixed right-0 top-[80px] z-[1100] h-[calc(100vh-80px)] overflow-hidden"
       data-theme={isDarkMode ? 'dark' : 'light'}
       data-open={isOpen}
     >
-      <div className="sidebar-panel__content">
-        <div className={`sidebar-panel__header${currentUser ? ' sidebar-panel__header--user' : ''}`}>
+      <div className="h-full w-80 overflow-y-auto p-6">
+        <div className={`${currentUser ? 'mb-2' : 'mb-6'} flex items-center justify-between`}>
           {!currentUser && (
-            <h2 id="sign-in-heading" className="sidebar-panel__title">
+            <h2 id="sign-in-heading" className="text-xl font-semibold">
               {isRegistering ? 'Create account' : 'Sign in'}
             </h2>
           )}
@@ -102,18 +112,18 @@ export default function SideBar({
             type="button"
             onClick={onClose}
             aria-label="Close sign-in panel"
-            className={`sidebar-close${currentUser ? ' sidebar-close--user' : ''}`}
+            className={`sidebar-close rounded px-2 py-1 text-2xl leading-none ${currentUser ? 'ml-auto' : ''}`}
           >
             &times;
           </button>
         </div>
         {currentUser ? (
-          <div className="sidebar-panel__user">
-            <div className="sidebar-panel__profile">
+          <div className="space-y-4">
+            <div className="flex flex-col items-start gap-[20px] text-left">
               <Link
                 href="/profile"
                 aria-label="Open Profile Settings"
-                className="sidebar-panel__profile-link"
+                className="block focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
               >
                 {currentUser.profile_picture ? (
                   <>
@@ -121,11 +131,11 @@ export default function SideBar({
                     <img
                       src={currentUser.profile_picture}
                       alt=""
-                      className="sidebar-panel__picture"
+                      className="h-[150px] w-[150px] object-cover"
                     />
                   </>
                 ) : (
-                  <div className="sidebar-panel__avatar">
+                  <div className="grid h-[150px] w-[150px] place-items-center bg-[#fbbf24] text-[#171717]">
                     <svg
                       viewBox="0 0 24 24"
                       width="84"
@@ -143,37 +153,37 @@ export default function SideBar({
                   </div>
                 )}
               </Link>
-              <div className="sidebar-panel__identity">
+              <div className="space-y-1">
                 {currentUser.display_name && (
-                  <p className="sidebar-panel__display-name">{currentUser.display_name}</p>
+                  <p className="text-xl font-semibold">{currentUser.display_name}</p>
                 )}
-                <p className={currentUser.display_name ? 'sidebar-panel__username sidebar-panel__username--with-name' : 'sidebar-panel__username'}>
+                <p className={currentUser.display_name ? 'text-sm' : 'text-xl font-semibold'}>
                   @{currentUser.username}
                 </p>
               </div>
               {currentUser.bio && (
                 <div
-                  className="sidebar-bio"
+                  className="sidebar-bio w-full rounded border p-3 text-sm"
                 >
                   <div
-                    className="sidebar-bio__text"
+                    className="break-words"
                     dangerouslySetInnerHTML={{ __html: currentUser.bio }}
                   />
                 </div>
               )}
             </div>
-            <div className="sidebar-panel__action">
+            <div className="text-center">
               <Link
                 href="/profile/events"
-                className="sidebar-panel__primary-action"
+                className="block w-full rounded bg-blue-600 px-4 py-2 text-center font-semibold text-white hover:bg-blue-700"
               >
                 Your Events
               </Link>
             </div>
-            <div className="sidebar-panel__action">
+            <div className="text-center">
               <Link
                 href="/profile"
-                className="sidebar-panel__primary-action"
+                className="block w-full rounded bg-blue-600 px-4 py-2 text-center font-semibold text-white hover:bg-blue-700"
               >
                 Profile Settings
               </Link>
@@ -182,14 +192,14 @@ export default function SideBar({
               type="button"
               onClick={handleLogout}
               disabled={isSubmitting}
-              className="sidebar-panel__primary-action"
+              className="w-full cursor-pointer rounded bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? 'Signing out...' : 'Sign out'}
             </button>
           </div>
         ) : (
-        <form onSubmit={handleSubmit} aria-labelledby="sign-in-heading" className="sidebar-panel__form">
-          <label className="sidebar-panel__field">
+        <form onSubmit={handleSubmit} aria-labelledby="sign-in-heading" className="space-y-4">
+          <label className="block">
             {isRegistering ? 'Username' : 'Username or email'}
             <input
               type="text"
@@ -198,11 +208,11 @@ export default function SideBar({
               required
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              className="sidebar-input"
+              className="sidebar-input mt-1 block w-full rounded border p-2"
             />
           </label>
           {isRegistering && (
-            <label className="sidebar-panel__field">
+            <label className="block">
               Email
               <input
                 type="email"
@@ -211,11 +221,11 @@ export default function SideBar({
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="sidebar-input"
+                className="sidebar-input mt-1 block w-full rounded border p-2"
               />
             </label>
           )}
-          <label className="sidebar-panel__field">
+          <label className="block">
             Password
             <input
               type="password"
@@ -224,11 +234,11 @@ export default function SideBar({
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="sidebar-input"
+              className="sidebar-input mt-1 block w-full rounded border p-2"
             />
           </label>
           {isRegistering && (
-            <label className="sidebar-panel__field">
+            <label className="block">
               Confirm password
               <input
                 type="password"
@@ -237,14 +247,14 @@ export default function SideBar({
                 required
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                className="sidebar-input"
+                className="sidebar-input mt-1 block w-full rounded border p-2"
               />
             </label>
           )}
           <button
             type="submit"
             disabled={isSubmitting}
-            className="sidebar-panel__primary-action"
+            className="w-full cursor-pointer rounded bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting
               ? (isRegistering ? 'Creating account...' : 'Logging in...')
@@ -253,7 +263,7 @@ export default function SideBar({
           <button
             type="button"
             onClick={() => changeMode(isRegistering ? 'login' : 'register')}
-            className="sidebar-mode-toggle"
+            className="sidebar-mode-toggle w-full text-center underline"
           >
             {isRegistering ? 'Back to sign in' : 'Register a new account'}
           </button>
