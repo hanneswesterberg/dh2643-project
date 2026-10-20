@@ -9,6 +9,7 @@ import "./components/Sidebar.css";
 import "./components/SavedEvents.css";
 import "./components/LoginPopup.css";
 import "./components/NavigationLinks.css";
+import "./components/SearchBar.css";
 import SystemMessageProvider from "./components/SystemMessageProvider";
 //import NavBar from "./components/navbar/Navbar";
 //import { useState } from "react";
@@ -34,9 +35,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`app-root ${geistSans.variable} ${geistMono.variable}`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="app-root__body">
         {/* <NavBar search={search} onSearchChange={setSearch}/> */}
         <SystemMessageProvider>{children}</SystemMessageProvider>
       </body>

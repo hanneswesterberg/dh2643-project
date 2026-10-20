@@ -81,17 +81,17 @@ export default function SavedEvents() {
   }
 
   return (
-    <section className="mx-auto mt-8 w-full max-w-3xl px-6 pb-10">
-      <div className="mb-6 flex items-center justify-between gap-3">
+    <section className="saved-events">
+      <div className="saved-events__toolbar">
         <Link
           href="/"
-          className="inline-block rounded border border-gray-300 px-4 py-2 transition-colors hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 dark:border-gray-600 dark:hover:bg-gray-800"
+          className="saved-events__back"
         >
           Go Back
         </Link>
         {!loading && events.length > 0 && (
-          <div className="flex items-center gap-2">
-            <label htmlFor="saved-events-sort" className="font-medium">
+          <div className="saved-events__sort">
+            <label htmlFor="saved-events-sort" className="saved-events__sort-label">
               Sort by
             </label>
             <select
@@ -103,7 +103,7 @@ export default function SavedEvents() {
                   setSortOrder(value);
                 }
               }}
-              className="saved-events-sort rounded border px-3 py-2"
+              className="saved-events-sort"
             >
               <option value="name">Name (A-Z)</option>
               <option value="date">Event date</option>
@@ -116,13 +116,13 @@ export default function SavedEvents() {
       {!loading && events.length === 0 && !loadFailed && (
         <p>You have not added any events yet.</p>
       )}
-      <ul className="space-y-3">
+      <ul className="saved-events__list">
         {sortedEvents.map((event) => (
           <li
             key={event.id}
-            className="saved-event-card flex flex-wrap items-center justify-between gap-4 rounded border border-gray-300 p-4 dark:border-gray-600"
+            className="saved-event-card"
           >
-            <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="saved-event-card__content">
               {event.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -130,11 +130,11 @@ export default function SavedEvents() {
                   alt=""
                   width={133}
                   height={130}
-                  className="saved-event-image shrink-0 rounded object-cover"
+                  className="saved-event-image"
                 />
               )}
-              <div className="min-w-0">
-                <h3 className="truncate font-semibold">{event.name}</h3>
+              <div className="saved-event-card__details">
+                <h3 className="saved-event-card__name">{event.name}</h3>
                 <p>
                   Artist:{' '}
                   {event.artists.length > 0
@@ -145,13 +145,13 @@ export default function SavedEvents() {
                 <p>Starts: {new Date(event.start).toLocaleString()}</p>
               </div>
             </div>
-            <div className="saved-event-actions flex shrink-0 flex-col items-stretch gap-2">
+            <div className="saved-event-actions">
               {event.ticket_url && (
                 <a
                   href={event.ticket_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-block rounded bg-blue-600 px-4 py-2 text-center font-semibold text-white hover:bg-blue-700"
+                  className="saved-events__tickets"
                 >
                   Get tickets
                 </a>
@@ -160,7 +160,7 @@ export default function SavedEvents() {
                 type="button"
                 onClick={() => void removeEvent(event.id)}
                 disabled={removingEventId === event.id}
-                className="event-remove-button rounded border border-red-600 bg-transparent px-3 py-2 font-semibold text-red-600 hover:cursor-pointer hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="event-remove-button"
               >
                 {removingEventId === event.id ? 'Removing...' : 'Remove'}
               </button>

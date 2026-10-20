@@ -58,3 +58,27 @@
   cursor: pointer;
   font: inherit;
 }
+
+.navbar__profile-picture,
+.navbar__avatar {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.navbar__profile-picture {
+  object-fit: cover;
+}
+
+.navbar__avatar {
+  display: grid;
+  place-items: center;
+  background: #fbbf24;
+  color: #171717;
+}
+
+.navbar__search-placeholder {
+  width: 100%;
+  max-width: 28rem;
+}

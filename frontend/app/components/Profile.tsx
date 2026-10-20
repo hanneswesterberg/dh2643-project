@@ -276,11 +276,9 @@ export default function UserProfile() {
         });
     }
 
-    function formatButtonClass(command: BioFormat, textStyle: string) {
-        return `cursor-pointer rounded border px-2 py-1 ${textStyle} ${
-            activeFormats[command]
-                ? "border-gray-600 bg-gray-300 text-gray-950 shadow-inner"
-                : "border-gray-300 bg-white hover:bg-gray-100"
+    function formatButtonClass(command: BioFormat) {
+        return `profile-format-button profile-format-button--${command}${
+            activeFormats[command] ? " profile-format-button--active" : ""
         }`;
     }
 
@@ -529,12 +527,12 @@ export default function UserProfile() {
     }
 
     return (
-        <section className="profile-form mx-auto max-w-xl space-y-5 p-6">
-            <div className="flex flex-wrap items-center gap-3">
+        <section className="profile-form">
+            <div className="profile-form__toolbar">
                 <button
                     type="button"
                     onClick={() => router.push("/")}
-                    className="cursor-pointer rounded border px-4 py-2 transition-colors hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+                    className="profile-button profile-button--secondary"
                 >
                     Go Back
                 </button>
@@ -542,36 +540,36 @@ export default function UserProfile() {
                     type="submit"
                     form="profile-form"
                     disabled={saving || !hasChanges}
-                    className={`rounded px-4 py-2 font-semibold text-white ${
+                    className={`profile-button profile-button--save ${
                         saving || !hasChanges
-                            ? "cursor-not-allowed bg-gray-400"
-                            : "bg-blue-600 hover:bg-blue-700"
+                            ? "profile-button--disabled"
+                            : "profile-button--primary"
                     }`}
                 >
                     {saving ? "Saving..." : "Save Changes"}
                 </button>
             </div>
-            <form id="profile-form" onSubmit={saveProfile} className="space-y-4">
-                <div className="flex flex-col items-start gap-4 sm:flex-row">
+            <form id="profile-form" onSubmit={saveProfile} className="profile-form__fields">
+                <div className="profile-picture-fields">
                     {(picturePreviewUrl || profile.profile_picture) && (
                         <button
                             type="button"
                             aria-label="Change profile picture"
                             onClick={() => void openExistingPictureCrop()}
-                            className="group relative block h-32 w-32 shrink-0 cursor-pointer overflow-hidden border-2 border-gray-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+                            className="profile-picture-preview"
                         >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src={picturePreviewUrl ?? profile.profile_picture}
                                 alt=""
-                                className="h-full w-full object-cover"
+                                className="profile-picture-preview__image"
                             />
-                            <span className="absolute inset-0 flex items-center justify-center bg-blue-600/60 text-lg font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                            <span className="profile-picture-preview__overlay">
                                 Change
                             </span>
                         </button>
                     )}
-                    <label className="block min-w-0 flex-1">
+                    <label className="profile-form__field profile-form__field--picture">
                         Profile picture (PNG or JPEG, max 2 MB)
                         <input
                             ref={pictureInput}
@@ -581,12 +579,12 @@ export default function UserProfile() {
                                 event.currentTarget.files?.[0] ?? null,
                                 event.currentTarget,
                             )}
-                            className="mt-1 block w-full rounded border border-gray-400 p-2 file:mr-3 file:cursor-pointer file:rounded file:border-2 file:border-gray-600 file:bg-white file:px-4 file:py-2 file:font-semibold file:text-gray-900 hover:file:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+                            className="profile-form__file-input"
                         />
-                        {pictureFile && <span className="mt-1 block">{pictureFile.name}</span>}
+                        {pictureFile && <span className="profile-form__filename">{pictureFile.name}</span>}
                     </label>
                 </div>
-                <label className="block">
+                <label className="profile-form__field">
                     Username
                     <input
                         type="text"
@@ -594,36 +592,36 @@ export default function UserProfile() {
                         required
                         value={profile.username}
                         onChange={(event) => updateField("username", event.target.value)}
-                        className={`mt-1 block w-full rounded border p-2 ${
+                        className={`profile-form__input ${
                             usernameCheckState === "available"
-                                ? "border-green-400 bg-green-50"
+                                ? "profile-form__input--available"
                                 : usernameCheckState === "taken"
-                                    ? "border-red-400 bg-red-50"
+                                    ? "profile-form__input--taken"
                                     : ""
                         }`}
                     />
                     {usernameCheckState === "available" && (
-                        <span className="mt-1 block text-sm text-green-700" role="status">
+                        <span className="profile-form__status profile-form__status--success" role="status">
                             Username is available
                         </span>
                     )}
                     {usernameCheckState === "taken" && (
-                        <span className="mt-1 block text-sm text-red-700" role="status">
+                        <span className="profile-form__status profile-form__status--error" role="status">
                             Username already taken
                         </span>
                     )}
                 </label>
-                <label className="block">
+                <label className="profile-form__field">
                     Display Name
                     <input
                         type="text"
                         autoComplete="name"
                         value={profile.display_name ?? ""}
                         onChange={(event) => updateField("display_name", event.target.value)}
-                        className="mt-1 block w-full rounded border p-2"
+                        className="profile-form__input"
                     />
                 </label>
-                <label className="block">
+                <label className="profile-form__field">
                     Email
                     <input
                         type="email"
@@ -631,12 +629,12 @@ export default function UserProfile() {
                         required
                         value={profile.email}
                         onChange={(event) => updateField("email", event.target.value)}
-                        className="mt-1 block w-full rounded border p-2"
+                        className="profile-form__input"
                     />
                 </label>
-                <div className="block">
+                <div className="profile-form__field">
                     <label htmlFor="current-password-display">Password</label>
-                    <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+                    <div className="profile-password-row">
                         <input
                             id="current-password-display"
                             type="password"
@@ -644,22 +642,22 @@ export default function UserProfile() {
                             value={"*".repeat(maskedPasswordLength)}
                             readOnly
                             aria-describedby="password-display-help"
-                            className="block min-w-0 flex-1 rounded border bg-gray-100 p-2 text-gray-500"
+                            className="profile-form__input profile-form__input--readonly"
                         />
                         <button
                             type="button"
                             onClick={togglePasswordChange}
-                            className="shrink-0 cursor-pointer rounded border px-4 py-2 transition-colors hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+                            className="profile-button profile-button--secondary profile-password-row__button"
                         >
                             {passwordChangeEnabled ? "Cancel" : "Change Password"}
                         </button>
                     </div>
-                    <span id="password-display-help" className="sr-only">
+                    <span id="password-display-help" className="visually-hidden">
                         The current password is stored securely and cannot be retrieved.
                     </span>
                     {passwordChangeEnabled && (
-                        <div className="mt-3 space-y-3">
-                            <label className="block">
+                        <div className="profile-password-change">
+                            <label className="profile-form__field">
                                 New password
                                 <input
                                     type="password"
@@ -674,10 +672,10 @@ export default function UserProfile() {
                                             void savePassword();
                                         }
                                     }}
-                                    className="mt-1 block w-full rounded border p-2"
+                                    className="profile-form__input"
                                 />
                             </label>
-                            <label className="block">
+                            <label className="profile-form__field">
                                 Confirm new password
                                 <input
                                     type="password"
@@ -692,7 +690,7 @@ export default function UserProfile() {
                                             void savePassword();
                                         }
                                     }}
-                                    className="mt-1 block w-full rounded border p-2"
+                                    className="profile-form__input"
                                 />
                             </label>
                             <button
@@ -703,23 +701,23 @@ export default function UserProfile() {
                                     !newPassword ||
                                     newPassword !== confirmNewPassword
                                 }
-                                className="rounded bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+                                className="profile-button profile-button--primary"
                             >
                                 {passwordSaving ? "Updating password..." : "Save Password"}
                             </button>
                         </div>
                     )}
                 </div>
-                <div className="block">
+                <div className="profile-form__field">
                     Bio
-                    <div role="toolbar" aria-label="Bio formatting" className="mt-1 flex gap-2">
+                    <div role="toolbar" aria-label="Bio formatting" className="profile-format-toolbar">
                         <button
                             type="button"
                             aria-label="Bold"
                             aria-pressed={activeFormats.bold}
                             onMouseDown={(event) => event.preventDefault()}
                             onClick={() => formatBio("bold")}
-                            className={formatButtonClass("bold", "font-bold")}
+                            className={formatButtonClass("bold")}
                         >
                             B
                         </button>
@@ -729,7 +727,7 @@ export default function UserProfile() {
                             aria-pressed={activeFormats.italic}
                             onMouseDown={(event) => event.preventDefault()}
                             onClick={() => formatBio("italic")}
-                            className={formatButtonClass("italic", "italic")}
+                            className={formatButtonClass("italic")}
                         >
                             I
                         </button>
@@ -739,7 +737,7 @@ export default function UserProfile() {
                             aria-pressed={activeFormats.underline}
                             onMouseDown={(event) => event.preventDefault()}
                             onClick={() => formatBio("underline")}
-                            className={formatButtonClass("underline", "underline")}
+                            className={formatButtonClass("underline")}
                         >
                             U
                         </button>
@@ -766,9 +764,9 @@ export default function UserProfile() {
                                 underline: document.queryCommandState("underline"),
                             });
                         }}
-                        className="mt-1 min-h-28 w-full rounded border p-2"
+                        className="profile-form__bio"
                     />
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="profile-form__hint">
                         {bioLength}/500 characters
                     </p>
                 </div>
@@ -777,7 +775,7 @@ export default function UserProfile() {
                     type="button"
                     onClick={() => void handleDeleteAccount()}
                     disabled={deletingAccount}
-                    className="event-remove-button cursor-pointer rounded border border-red-600 bg-transparent px-3 py-2 font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
+                    className="event-remove-button"
                 >
                     {deletingAccount ? "Deleting..." : "Delete account"}
                 </button>
@@ -785,18 +783,18 @@ export default function UserProfile() {
             {cropSourceUrl && (
                 <div
                     role="presentation"
-                    className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/60 p-4"
+                    className="profile-crop-overlay"
                 >
                     <section
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="crop-picture-title"
-                        className="profile-crop-dialog w-full max-w-md space-y-4 rounded-lg bg-white p-6 text-gray-900 shadow-xl"
+                        className="profile-crop-dialog"
                     >
-                        <h2 id="crop-picture-title" className="text-xl font-semibold">
+                        <h2 id="crop-picture-title" className="profile-crop-dialog__title">
                             Crop profile picture
                         </h2>
-                        <p className="text-sm text-gray-600">
+                        <p className="profile-crop-dialog__description">
                             {choosingNewPicture
                                 ? "Choose an image to use as your profile picture."
                                 : "Drag the image to choose a square crop."}
@@ -827,10 +825,10 @@ export default function UserProfile() {
                                     }
                                 }}
                                 onDrop={handlePictureDrop}
-                                className={`mx-auto flex aspect-square w-full max-w-[320px] cursor-pointer items-center justify-center p-8 text-center outline-offset-2 transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 ${
+                                className={`profile-crop-dropzone ${
                                     isPictureDragOver
-                                        ? "bg-blue-600 text-white"
-                                        : "bg-gray-300 text-gray-800 hover:bg-gray-400"
+                                        ? "profile-crop-dropzone--active"
+                                        : ""
                                 }`}
                             >
                                 Drag and drop your image, or click this square!
@@ -840,7 +838,7 @@ export default function UserProfile() {
                             ref={cropViewport}
                             tabIndex={0}
                             aria-label="Square image crop. Drag the image or use the arrow keys to adjust it."
-                            className="relative mx-auto aspect-square w-full max-w-[320px] touch-none cursor-grab overflow-hidden bg-black outline-offset-2 active:cursor-grabbing"
+                            className="profile-crop-viewport"
                             onPointerDown={(event) => {
                                 if (!cropImageDimensions) return;
                                 cropDrag.current = {
@@ -890,7 +888,7 @@ export default function UserProfile() {
                                 draggable={false}
                                 onLoad={initializeCrop}
                                 onError={() => showSystemMessage("Upload a valid PNG or JPEG image.", "error")}
-                                className={`profile-crop-image pointer-events-none absolute max-w-none select-none${cropImageDimensions ? '' : ' profile-crop-image--hidden'}`}
+                                className={`profile-crop-image${cropImageDimensions ? '' : ' profile-crop-image--hidden'}`}
                                 style={cropImageDimensions ? {
                                     '--crop-left': `${cropPosition.x}px`,
                                     '--crop-top': `${cropPosition.y}px`,
@@ -901,7 +899,7 @@ export default function UserProfile() {
                         </div>
                         )}
                         {!choosingNewPicture && (
-                            <label className="block text-sm">
+                            <label className="profile-crop-zoom">
                                 Zoom
                                 <input
                                     type="range"
@@ -912,26 +910,26 @@ export default function UserProfile() {
                                     onChange={(event) => updateCropZoom(Number(event.target.value))}
                                     disabled={!cropImageDimensions}
                                     aria-label="Zoom profile picture"
-                                    className="mt-2 block w-full accent-blue-600"
+                                    className="profile-crop-zoom__slider"
                                 />
-                                <span className="text-gray-600">{cropZoom.toFixed(1)}×</span>
+                                <span className="profile-crop-dialog__description">{cropZoom.toFixed(1)}×</span>
                             </label>
                         )}
-                        <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="profile-crop-dialog__actions">
                             {!choosingNewPicture && (
                                 <button
                                     type="button"
                                     onClick={chooseNewPicture}
-                                    className="mr-auto rounded border border-gray-400 px-4 py-2 hover:bg-gray-100"
+                                    className="profile-button profile-button--secondary profile-crop-dialog__choose"
                                 >
                                     Choose new picture
                                 </button>
                             )}
-                            <div className="flex gap-3">
+                            <div className="profile-crop-dialog__action-group">
                                 <button
                                     type="button"
                                     onClick={cancelCrop}
-                                    className="rounded border border-gray-400 px-4 py-2 hover:bg-gray-100"
+                                    className="profile-button profile-button--secondary"
                                 >
                                     Cancel
                                 </button>
@@ -939,7 +937,7 @@ export default function UserProfile() {
                                     type="button"
                                     onClick={confirmCrop}
                                     disabled={!cropImageDimensions}
-                                    className="rounded bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                                    className="profile-button profile-button--primary"
                                 >
                                     Confirm
                                 </button>

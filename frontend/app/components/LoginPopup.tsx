@@ -34,24 +34,24 @@ export default function Modal({
 
   return (
     <div
-      className={`fixed inset-0 flex items-center justify-center z-50 ${className ?? ""}`}
+      className={`modal ${className ?? ""}`}
       onClick={onClose}
       aria-modal="true"
       role="dialog"
     >
       <div
-        className="min-w-75 max-w-[90vw] max-h-[90vh] shadow-lg flex flex-col"
+        className="modal__content"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
-          className="z-100 absolute top-3 right-3"
+          className="modal__close"
           aria-label="Close modal"
         >
           X
         </button>
-        <div className="flex-1 min-h-0 max-h-[90vh]">{children}</div>
+        <div className="modal__body">{children}</div>
       </div>
     </div>
   );

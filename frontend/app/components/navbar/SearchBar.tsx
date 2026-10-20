@@ -86,7 +86,7 @@ export default function SearchBar({ isDarkMode = false }: SearchBarProps) {
     results.genres.length === 0;
 
   return (
-    <div ref={wrapperRef} className="relative w-full max-w-md">
+    <div ref={wrapperRef} className="search-bar">
       <form onSubmit={handleFormSubmit}>
         <input
           type="text"
@@ -96,15 +96,11 @@ export default function SearchBar({ isDarkMode = false }: SearchBarProps) {
             if (results) setIsOpen(true);
           }}
           placeholder="Search genres, artists or venues..."
-          className={`w-full rounded-full border px-5 py-3 pr-12 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200 ${
-            isDarkMode
-              ? 'border-gray-600 bg-gray-800 text-white placeholder:text-gray-400'
-              : 'border-gray-300 bg-white text-gray-900 placeholder:text-gray-500'
-          }`}
+          className={`search-bar__input${isDarkMode ? ' search-bar__input--dark' : ''}`}
         />
         <button
           type="submit"
-          className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 hover:text-blue-500 transition"
+          className="search-bar__submit"
         >
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -118,16 +114,16 @@ export default function SearchBar({ isDarkMode = false }: SearchBarProps) {
       </form>
 
       {isOpen && results && (
-        <div className="absolute left-0 top-full mt-2 w-full overflow-hidden rounded-xl border border-gray-100 bg-white shadow-xl z-50">
+        <div className="search-bar__results">
           {hasNoResults ? (
-            <div className="p-4 text-center text-sm text-gray-500">
-              No results found for &quot;<span className="font-semibold text-gray-700">{term}</span>&quot;
+            <div className="search-bar__empty">
+              No results found for &quot;<span className="search-bar__term">{term}</span>&quot;
             </div>
           ) : (
             <>
               {results.artists.length > 0 && (
-                <div className="p-2">
-                  <h3 className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                <div className="search-bar__category">
+                  <h3 className="search-bar__category-title">
                     Artists
                   </h3>
                   <ul>
@@ -136,7 +132,7 @@ export default function SearchBar({ isDarkMode = false }: SearchBarProps) {
                         <button
                           type="button"
                           onClick={() => handleSelect(artist.name)}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md transition text-gray-800"
+                          className="search-bar__result"
                         >
                           {artist.name}
                         </button>
@@ -147,8 +143,8 @@ export default function SearchBar({ isDarkMode = false }: SearchBarProps) {
               )}
 
               {results.venues.length > 0 && (
-                <div className="p-2 border-t border-gray-50">
-                  <h3 className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                <div className="search-bar__category search-bar__category--separated">
+                  <h3 className="search-bar__category-title">
                     Venues
                   </h3>
                   <ul>
@@ -157,7 +153,7 @@ export default function SearchBar({ isDarkMode = false }: SearchBarProps) {
                         <button
                           type="button"
                           onClick={() => handleSelect(venue.name)}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md transition text-gray-800"
+                          className="search-bar__result"
                         >
                           {venue.name}
                         </button>
@@ -168,8 +164,8 @@ export default function SearchBar({ isDarkMode = false }: SearchBarProps) {
               )}
 
               {results.genres.length > 0 && (
-                <div className="p-2 border-t border-gray-50">
-                  <h3 className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                <div className="search-bar__category search-bar__category--separated">
+                  <h3 className="search-bar__category-title">
                     Genres
                   </h3>
                   <ul>
@@ -178,7 +174,7 @@ export default function SearchBar({ isDarkMode = false }: SearchBarProps) {
                         <button
                           type="button"
                           onClick={() => handleSelect(genre.name)}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded-md transition text-gray-800"
+                          className="search-bar__result"
                         >
                           {genre.name}
                         </button>

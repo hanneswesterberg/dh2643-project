@@ -71,6 +71,27 @@
   pointer-events: auto;
 }
 
+.home-page {
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.home-page__header,
+.profile-page__header {
+  position: relative;
+  z-index: 50;
+  flex-shrink: 0;
+}
+
+.home-page__loading {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}
+
 .map-popup--event {
   min-width: 240px;
   max-width: 360px;

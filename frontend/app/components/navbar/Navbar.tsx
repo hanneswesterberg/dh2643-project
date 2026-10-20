@@ -71,7 +71,7 @@ const Navbar = (props: NavbarProps) => {
         <Logo isDarkMode={isDarkMode} />
       </div>
 
-      <Suspense fallback={<div className="w-full max-w-md" aria-hidden="true" />}>
+      <Suspense fallback={<div className="navbar__search-placeholder" aria-hidden="true" />}>
         <SearchBar isDarkMode={isDarkMode} />
       </Suspense>
 
