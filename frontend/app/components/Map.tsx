@@ -534,7 +534,10 @@ export default function ConcertMap({
         animateFeatureScale(hoveredFeatureRef.current, 1.5);
       }
 
-      target.classList.toggle('map-pointer-cursor', Boolean(hoveredFeature));
+      target.classList.toggle(
+        'concert-map__canvas--pointer',
+        Boolean(hoveredFeature)
+      );
     };
     map.on('pointermove', handlePointerMove);
 
@@ -625,7 +628,7 @@ export default function ConcertMap({
     map.on('singleclick', handleMapClick);
 
     const handlePointerLeave = () => {
-      target.classList.remove('map-pointer-cursor');
+      target.classList.remove('concert-map__canvas--pointer');
       animateFeatureScale(hoveredFeatureRef.current, 1);
       hoveredFeatureRef.current = null;
     };
@@ -739,9 +742,7 @@ export default function ConcertMap({
 
   return (
     <div
-      data-theme={isDarkMode ? 'dark' : 'light'}
-      data-sidebar-open={isSidebarOpen}
-      className="concert-map"
+      className={`concert-map${isDarkMode ? ' concert-map--dark' : ''}${isSidebarOpen ? ' concert-map--sidebar-open' : ''}`}
     >
       <div ref={mapRef} className="concert-map__canvas" />
       <button
@@ -831,7 +832,7 @@ export default function ConcertMap({
       {popupElement &&
         createPortal(
           <div
-            className={`map-popup${selectedVenue && !selectedEvent ? ' map-popup--venue' : ' map-popup--event'}`}
+            className={`map-popup${selectedVenue && !selectedEvent ? ' map-popup--venue map-venue' : ' map-popup--event'}${isDarkMode ? ' map-popup--dark' : ''}`}
             data-theme={isDarkMode ? 'dark' : 'light'}
             style={
               eventDetails?.imageUrl

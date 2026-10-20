@@ -1,7 +1,17 @@
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { getCurrentUser, logIn, logOut, signUp } from '../Lib/userAPI';
 import { useSystemMessage } from '../SystemMessageProvider';
+import { UserProfileData } from '../userModel';
+
+type SideBarProps = {
+  isOpen: boolean;
+  isDarkMode: boolean;
+  onClose: () => void;
+  currentUser: UserProfileData | null;
+  onAuthenticated: (user: UserProfileData) => void;
+  onLoggedOut: () => void;
+};
 
 export default function SideBar({
   isOpen,
@@ -10,8 +20,9 @@ export default function SideBar({
   currentUser,
   onAuthenticated,
   onLoggedOut,
-}) {
-  const [mode, setMode] = useState('login');
+}: SideBarProps) {
+
+  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,7 +30,7 @@ export default function SideBar({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const showSystemMessage = useSystemMessage();
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (mode === 'register' && password !== confirmPassword) {
       showSystemMessage('Passwords do not match.', 'error');
@@ -61,7 +72,7 @@ export default function SideBar({
     }
   }
 
-  function changeMode(nextMode) {
+  function changeMode(nextMode: 'login' | 'register') {
     setMode(nextMode);
     setPassword('');
     setConfirmPassword('');
@@ -87,9 +98,7 @@ export default function SideBar({
     <div
       aria-hidden={!isOpen}
       inert={!isOpen}
-      className="sidebar-panel"
-      data-theme={isDarkMode ? 'dark' : 'light'}
-      data-open={isOpen}
+      className={`sidebar-panel${isOpen ? ' sidebar-panel--open' : ''}${isDarkMode ? ' sidebar-panel--dark' : ''}`}
     >
       <div className="sidebar-panel__content">
         <div className={`sidebar-panel__header${currentUser ? ' sidebar-panel__header--user' : ''}`}>
@@ -102,7 +111,7 @@ export default function SideBar({
             type="button"
             onClick={onClose}
             aria-label="Close sign-in panel"
-            className={`sidebar-close${currentUser ? ' sidebar-close--user' : ''}`}
+            className={`sidebar-panel__close${currentUser ? ' sidebar-panel__close--user' : ''}`}
           >
             &times;
           </button>
@@ -153,10 +162,10 @@ export default function SideBar({
               </div>
               {currentUser.bio && (
                 <div
-                  className="sidebar-bio"
+                  className="sidebar-panel__bio"
                 >
                   <div
-                    className="sidebar-bio__text"
+                    className="sidebar-panel__bio-text"
                     dangerouslySetInnerHTML={{ __html: currentUser.bio }}
                   />
                 </div>
@@ -198,7 +207,7 @@ export default function SideBar({
               required
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              className="sidebar-input"
+              className="sidebar-panel__input"
             />
           </label>
           {isRegistering && (
@@ -211,7 +220,7 @@ export default function SideBar({
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="sidebar-input"
+                className="sidebar-panel__input"
               />
             </label>
           )}
@@ -224,7 +233,7 @@ export default function SideBar({
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="sidebar-input"
+              className="sidebar-panel__input"
             />
           </label>
           {isRegistering && (
@@ -237,7 +246,7 @@ export default function SideBar({
                 required
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
-                className="sidebar-input"
+                className="sidebar-panel__input"
               />
             </label>
           )}
@@ -253,7 +262,7 @@ export default function SideBar({
           <button
             type="button"
             onClick={() => changeMode(isRegistering ? 'login' : 'register')}
-            className="sidebar-mode-toggle"
+            className="sidebar-panel__mode-toggle"
           >
             {isRegistering ? 'Back to sign in' : 'Register a new account'}
           </button>

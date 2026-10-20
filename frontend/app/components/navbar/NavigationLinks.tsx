@@ -7,8 +7,8 @@ const NavigationLinks: React.FC = () => {
 
   return (
     <div className="navigation-links">
-      <button onClick={() => router.push('/search')}>All</button>
-      <button onClick={() => router.push('/login')}>Log in</button>
+      <button className="navigation-links__link" onClick={() => router.push('/search')}>All</button>
+      <button className="navigation-links__link" onClick={() => router.push('/login')}>Log in</button>
     </div>
   );
 };

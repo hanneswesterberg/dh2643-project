@@ -25,11 +25,11 @@
   background: #f3f4f6;
 }
 
-.profile-page[data-theme='dark'] .saved-events__back {
+.profile-page--dark .saved-events__back {
   border-color: #4b5563;
 }
 
-.profile-page[data-theme='dark'] .saved-events__back:hover {
+.profile-page--dark .saved-events__back:hover {
   background: #1f2937;
 }
 
@@ -48,7 +48,7 @@
   font-weight: 500;
 }
 
-.saved-events-sort {
+.saved-events__sort-select {
   padding: 0.5rem 0.75rem;
   border: 1px solid #d1d5db;
   border-radius: 0.25rem;
@@ -74,7 +74,7 @@
   border-radius: 0.25rem;
 }
 
-.profile-page[data-theme='dark'] .saved-event-card {
+.profile-page--dark .saved-event-card {
   border-color: #4b5563;
 }
 
@@ -86,7 +86,7 @@
   gap: 0.75rem;
 }
 
-.saved-event-image {
+.saved-event-card__image {
   width: 133px;
   min-width: 133px;
   height: 130px;
@@ -114,7 +114,7 @@
   gap: 0.5rem;
 }
 
-.saved-events__tickets {
+.saved-event-actions__ticket-link {
   display: inline-block;
   padding: 0.5rem 1rem;
   border-radius: 0.25rem;
@@ -124,11 +124,11 @@
   text-align: center;
 }
 
-.saved-events__tickets:hover {
+.saved-event-actions__ticket-link:hover {
   background: #1d4ed8;
 }
 
-.event-remove-button {
+.saved-event-actions__remove-button {
   padding: 0.5rem 0.75rem;
   border: 1px solid #dc2626;
   border-radius: 0.25rem;
@@ -137,24 +137,14 @@
   font-weight: 600;
 }
 
-.event-remove-button:hover {
+.saved-event-actions__remove-button:hover {
   cursor: pointer;
   background: #fef2f2;
 }
 
-.event-remove-button:disabled {
+.saved-event-actions__remove-button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
-}
-
-.profile-page[data-theme='dark'] .event-remove-button {
-  border-color: #ffffff;
-  background: transparent;
-  color: #ffffff;
-}
-
-.profile-page[data-theme='dark'] .event-remove-button:hover {
-  background: rgb(255 255 255 / 10%);
 }
 
 @media (max-width: 600px) {
@@ -167,7 +157,7 @@
     width: 100%;
   }
 
-  .saved-event-actions > * {
+  .saved-event-actions__action {
     box-sizing: border-box;
     width: 100%;
   }

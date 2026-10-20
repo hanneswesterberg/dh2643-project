@@ -15,9 +15,9 @@ export default function Modal({
 }: ModalProps) {
   useEffect(() => {
     if (!isOpen) return;
-    document.body.classList.add("modal-open");
+    document.body.classList.add("app-root__body--modal-open");
     return () => {
-      document.body.classList.remove("modal-open");
+      document.body.classList.remove("app-root__body--modal-open");
     };
   }, [isOpen]);
 

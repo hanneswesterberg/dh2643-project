@@ -96,7 +96,7 @@ export default function MapFilterBox({
                     onChange={() => onToggleGenre(genre)}
                     className="map-filter__checkbox"
                   />
-                  <span>{genre}</span>
+                  <span className="map-filter__genre-label">{genre}</span>
                 </label>
               );
             })

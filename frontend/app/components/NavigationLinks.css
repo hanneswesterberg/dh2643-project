@@ -3,7 +3,7 @@
   gap: 1rem;
 }
 
-.navigation-links button {
+.navigation-links__link {
   border: 0;
   background: none;
   color: pink;
