@@ -200,7 +200,7 @@ export default function ConcertMap({
 
   //searchbar connection
   const searchParams = useSearchParams();
-  const searchTerm = searchParams.get(('search') || '')?.trim();
+  const searchTerm = (searchParams.get('search') || '').trim();
 
   const handleToggleGenre = (genre: string) => {
     clearSelection();
