@@ -6,7 +6,7 @@
   color-scheme: light;
 }
 
-.concert-map[data-theme='dark'] {
+.concert-map--dark {
   color-scheme: dark;
 }
 
@@ -22,7 +22,7 @@
   left: auto !important;
 }
 
-.concert-map__canvas.map-pointer-cursor {
+.concert-map__canvas--pointer {
   cursor: pointer;
 }
 
@@ -44,8 +44,8 @@
   cursor: pointer;
 }
 
-.concert-map[data-theme='dark'] .concert-map__filter-toggle,
-.concert-map[data-theme='dark'] .concert-map__status {
+.concert-map--dark .concert-map__filter-toggle,
+.concert-map--dark .concert-map__status {
   background: #1f2937;
   color: #f9fafb;
 }
@@ -62,7 +62,7 @@
   transition: right 300ms ease;
 }
 
-.concert-map[data-sidebar-open='true'] .concert-map__theme-toggle {
+.concert-map--sidebar-open .concert-map__theme-toggle {
   right: 336px;
 }
 
@@ -76,13 +76,6 @@
   height: 100vh;
   flex-direction: column;
   overflow: hidden;
-}
-
-.home-page__header,
-.profile-page__header {
-  position: relative;
-  z-index: 50;
-  flex-shrink: 0;
 }
 
 .home-page__loading {
@@ -112,11 +105,11 @@
   font-size: 14px;
 }
 
-.map-popup[data-theme='dark'] {
+.map-popup--dark {
   color: #f9fafb;
 }
 
-.map-popup--event[data-theme='dark'] {
+.map-popup--event.map-popup--dark {
   background: #1f2937;
 }
 
@@ -130,7 +123,7 @@
   text-decoration: underline;
 }
 
-.map-popup[data-theme='dark'] .map-popup__link {
+.map-popup--dark .map-popup__link {
   color: #93c5fd;
 }
 
@@ -152,7 +145,7 @@
   font: inherit;
 }
 
-.concert-map[data-theme='dark'] .map-popup__save-button {
+.concert-map--dark .map-popup__save-button {
   background: rgb(255 132 0);
 }
 
@@ -230,8 +223,8 @@
   font-size: 8px;
 }
 
-.concert-map[data-theme='dark'] .map-venue__event,
-.concert-map[data-theme='dark'] .map-venue__center {
+.concert-map--dark .map-venue__event,
+.concert-map--dark .map-venue__center {
   background: rgb(255 132 0);
 }
 
@@ -268,12 +261,12 @@
   color: #171717;
 }
 
-.concert-map[data-theme='dark'] .map-venue__stage,
-.concert-map[data-theme='dark'] .map-venue__pagination {
+.concert-map--dark .map-venue__stage,
+.concert-map--dark .map-venue__pagination {
   background: #1f2937;
 }
 
-.concert-map[data-theme='dark'] .map-venue__stage-select {
+.concert-map--dark .map-venue__stage-select {
   background: #111827;
   color: #ebebeb;
 }
@@ -305,12 +298,12 @@
   cursor: default;
 }
 
-.concert-map[data-theme='dark'] .map-venue__page-button:disabled {
+.concert-map--dark .map-venue__page-button:disabled {
   background: #4b5563;
   color: #d1d5db;
 }
 
-.concert-map[data-theme='dark'] .map-venue__page-button:not(:disabled) {
+.concert-map--dark .map-venue__page-button:not(:disabled) {
   background: rgb(255 132 0);
 }
 
@@ -340,7 +333,7 @@
   box-shadow: 0 8px 32px rgb(0 0 0 / 30%);
 }
 
-.map-artist-dialog[data-theme='dark'] {
+.map-artist-dialog--dark {
   background: #1f2937;
   color: #f9fafb;
 }

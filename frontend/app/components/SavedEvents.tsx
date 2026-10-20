@@ -103,7 +103,7 @@ export default function SavedEvents() {
                   setSortOrder(value);
                 }
               }}
-              className="saved-events-sort"
+              className="saved-events__sort-select"
             >
               <option value="name">Name (A-Z)</option>
               <option value="date">Event date</option>
@@ -130,7 +130,7 @@ export default function SavedEvents() {
                   alt=""
                   width={133}
                   height={130}
-                  className="saved-event-image"
+                  className="saved-event-card__image"
                 />
               )}
               <div className="saved-event-card__details">
@@ -151,7 +151,7 @@ export default function SavedEvents() {
                   href={event.ticket_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="saved-events__tickets"
+                  className="saved-event-actions__action saved-event-actions__ticket-link"
                 >
                   Get tickets
                 </a>
@@ -160,7 +160,7 @@ export default function SavedEvents() {
                 type="button"
                 onClick={() => void removeEvent(event.id)}
                 disabled={removingEventId === event.id}
-                className="event-remove-button"
+                className="saved-event-actions__action saved-event-actions__remove-button"
               >
                 {removingEventId === event.id ? 'Removing...' : 'Remove'}
               </button>
