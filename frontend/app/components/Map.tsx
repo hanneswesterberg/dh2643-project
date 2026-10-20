@@ -148,7 +148,14 @@ interface ConcertMapProps {
   authenticatedUsername: string | null;
   onLoginRequired: () => void;
 }
+function getTodayDate(): string {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
 
+  return `${year}-${month}-${day}`;
+}
 export default function ConcertMap({
   isDarkMode,
   onDarkModeChange,
@@ -180,7 +187,7 @@ export default function ConcertMap({
   const [popupElement, setPopupElement] = useState<HTMLDivElement | null>(null);
   const isDarkModeRef = useRef(isDarkMode);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [startDate, setStartDate] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>(() => getTodayDate());
   const [endDate, setEndDate] = useState<string>('');
   const [savedEventIds, setSavedEventIds] = useState<Set<number>>(new Set());
   const [savedEventsUsername, setSavedEventsUsername] = useState<string | null>(null);
