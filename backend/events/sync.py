@@ -72,7 +72,7 @@ def sync_tickster_data(data: dict):
         # Check if any parsed artist matches the comedians list
         has_excluded = any(name.lower() in EXCLUDE for name in valid_artist_names)
         if has_excluded:
-            logger.info(f"Skipping event featuring: {", ".join(valid_artist_names)}")
+            logger.info(f"Skipping event featuring {valid_artist_names[0]} et al...")
             continue
 
         # Link to correct venue
@@ -100,4 +100,3 @@ def sync_tickster_data(data: dict):
             artists_to_link.append(artist)
 
         event.artists.set(artists_to_link)
-        
