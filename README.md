@@ -1,12 +1,11 @@
 
-# DH2643 Group 9 Project – ConcertMap Stockholm
+# DH2643 Group 9 Project – Ballad
 
 This application displays concerts and events on a map. Event data is fetched from Tickster and artists enriched with genre tags from MusicBrainz.
 
-## Requirements
-- Docker and Docker Compose installed on your machine.
-
 ## How to run the project locally
+
+- Make sure Docker and Docker Compose are installed on your machine.
 
 1. **Clone the repo and enter the directory**
 ```bash
@@ -21,7 +20,7 @@ docker compose up -d --build
 ```
 
 3. **Run database migrations**
-Once the database has started (might take a while), run the migrations to create the tables:
+Once the database has started, run the migrations to create the tables:
 ```bash
 docker compose exec backend python manage.py migrate
 ```
@@ -29,36 +28,16 @@ docker compose exec backend python manage.py migrate
 4. **Load test data from Tickster & MusicBrainz**
 To populate the database with events and genres, open the Django shell:
 ```bash
-docker compose exec backend python manage.py shell
+docker compose exec backend python manage.py fetch_tickster
 ```
-
-Then paste the following:
-```python
-import json
-from events.sync import sync_tickster_data
-with open("tickster_dump.json", "r", encoding="utf-8") as f:
-    sync_tickster_data(json.load(f))
-```
-
 
 *To fetch MusicBrainz genres (API has rate limit of 1 request/sec):*
+Set --limit to whatever you like. The higher the better, but it will take longer.
 ```bash
 docker compose exec backend python manage.py sync_musicbrainz --limit 50
 ```
 
-
 5. **Open the application**
 * Frontend (Next.js): http://localhost:3000
-* Backend API: http://localhost:8000/api/events/
+* Backend API: http://localhost:8000/api/
 
-## Run live API contract tests
-
-Start the backend and load at least one event with venue coordinates, then run:
-
-```bash
-python -m unittest discover -s backend/api_tests -v
-```
-
-The suite sends HTTP requests to the running server at `http://127.0.0.1:8000`.
-Set `API_BASE_URL` to target a different server. It creates a uniquely named
-temporary account and deletes it when the test finishes.
