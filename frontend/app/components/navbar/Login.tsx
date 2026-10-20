@@ -24,12 +24,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, username, profilePicture }) => {
           width={24}
           height={24}
           unoptimized
-          className="h-6 w-6 rounded-full object-cover"
+          className="navbar__profile-picture"
         />
       ) : username ? (
         <span
           aria-hidden="true"
-          className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#fbbf24] text-[#171717]"
+          className="navbar__avatar"
         >
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" />

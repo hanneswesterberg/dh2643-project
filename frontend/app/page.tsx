@@ -15,7 +15,7 @@ const ConcertMap = dynamic(
     ssr: false,
     loading: () => (
       <div
-        className="flex flex-1 items-center justify-center"
+        className="home-page__loading"
         role="status"
       >
         Loading concert map…
@@ -53,10 +53,10 @@ export default function Home() {
 
   return (
     <main
-      className="flex h-screen flex-col overflow-hidden"
+      className="home-page"
       data-theme={isDarkMode ? 'dark' : 'light'}
     >
-      <header className="relative z-50 shrink-0">
+      <header className="home-page__header">
         <NavBar
           loginChange={setSidebarOpen}
           currentSidebarState={isSidebarOpen}

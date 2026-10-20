@@ -9,10 +9,10 @@ export default function ProfilePage() {
 
   return (
     <main
-      className="profile-page min-h-screen"
+      className="profile-page"
       data-theme={isDarkMode ? 'dark' : 'light'}
     >
-      <header className="relative z-50 shrink-0">
+      <header className="profile-page__header">
         <Navbar
           logoOnly
           title="Profile"
