@@ -39,7 +39,7 @@ class Command(BaseCommand):
                 try:
                     response = requests.get(url, headers=headers, timeout=10)
                     
-                    # 1. Handle the 503 error gracefully
+                    # Handle the 503 error gracefully
                     if response.status_code == 503:
                         if attempt < max_retries:
                             # Exponential backoff: 3s, 6s, 9s

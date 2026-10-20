@@ -6,6 +6,7 @@ Reads the Tickster JSON dump and fills the database.
 import logging
 from django.contrib.gis.geos import Point
 from events.models import Venue, Artist, Event
+from .constants import EXCLUDE
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,12 @@ def sync_tickster_data(data: dict):
         if not valid_artist_names:
             continue
 
+        # Check if any parsed artist matches the comedians list
+        has_excluded = any(name.lower() in EXCLUDE for name in valid_artist_names)
+        if has_excluded:
+            logger.info(f"Skipping event featuring: {", ".join(valid_artist_names)}")
+            continue
+
         # Link to correct venue
         v_id = e_data.get("venueId")
         venue = venue_map.get(v_id)
@@ -93,4 +100,4 @@ def sync_tickster_data(data: dict):
             artists_to_link.append(artist)
 
         event.artists.set(artists_to_link)
-
+        
