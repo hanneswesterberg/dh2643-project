@@ -26,8 +26,7 @@
   cursor: pointer;
 }
 
-.concert-map__filter-toggle,
-.concert-map__status {
+.concert-map__filter-toggle {
   position: absolute;
   top: 16px;
   left: 16px;
@@ -44,14 +43,14 @@
   cursor: pointer;
 }
 
-.concert-map--dark .concert-map__filter-toggle,
-.concert-map--dark .concert-map__status {
+.concert-map--dark .concert-map__filter-toggle {
   background: #1f2937;
   color: #f9fafb;
 }
 
-.concert-map__status {
-  box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
+.concert-map--dark .system-message--loading {
+  background-color: #1f2937;
+  color: #f9fafb;
 }
 
 .concert-map__theme-toggle {
@@ -142,7 +141,7 @@
   font: inherit;
 }
 
-.concert-map[data-theme='dark'] .map-popup__back-button {
+.map-popup--dark .map-popup__back-button {
   background: rgb(255 132 0);
 }
 
@@ -165,7 +164,7 @@
   text-decoration: none;
 }
 
-.concert-map[data-theme='dark'] .map-popup__ticket-button {
+.map-popup--dark .map-popup__ticket-button {
   background: rgb(255 132 0);
 }
 

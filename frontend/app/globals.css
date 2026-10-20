@@ -143,6 +143,11 @@ a {
   background-color: #dc2626;
 }
 
+.system-message--loading {
+  background-color: #ffffff;
+  color: #171717;
+}
+
 .system-message--exit {
   animation: system-message-exit 300ms ease both;
 }
