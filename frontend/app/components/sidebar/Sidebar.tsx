@@ -72,7 +72,6 @@ export default function SideBar({
     }
   }
 
-  function changeMode(nextMode : string) {
   function changeMode(nextMode: 'login' | 'register') {
     setMode(nextMode);
     setPassword('');
