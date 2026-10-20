@@ -122,7 +122,7 @@ export default function SavedEvents() {
             key={event.id}
             className="saved-event-card flex flex-wrap items-center justify-between gap-4 rounded border border-gray-300 p-4 dark:border-gray-600"
           >
-            <div className="flex min-w-0 items-center gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
               {event.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -130,12 +130,11 @@ export default function SavedEvents() {
                   alt=""
                   width={133}
                   height={130}
-                  className="shrink-0 rounded object-cover"
-                  style={{ width: '133px', height: '130px', minWidth: '133px' }}
+                  className="saved-event-image shrink-0 rounded object-cover"
                 />
               )}
               <div className="min-w-0">
-                <h3 className="font-semibold">{event.name}</h3>
+                <h3 className="truncate font-semibold">{event.name}</h3>
                 <p>
                   Artist:{' '}
                   {event.artists.length > 0

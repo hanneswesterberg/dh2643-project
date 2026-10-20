@@ -15,16 +15,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, username, profilePicture }) => {
       type="button"
       onClick={onLogin}
       aria-label={username ?? 'Sign in'}
-      style={{
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        border: 0,
-        background: 'transparent',
-        color: 'inherit',
-        font: 'inherit',
-      }}
+      className="navbar__login"
     >
       {profilePicture ? (
         <Image

@@ -9,19 +9,14 @@ interface LogoProps{
 const Logo = ({ isDarkMode }: LogoProps) => {
   return (
     <Link href="/" passHref>
-      <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+      <div className="navbar__logo-link">
         {/* Assuming logo.jpg is in the public/logo directory */}
         <Image 
           src="/DH2643LOGOV1.svg" 
           alt="Home"
           width={386}
           height={100}
-          style={{
-            width: 100,
-            height: 'auto',
-            objectFit: "contain",
-            filter: isDarkMode ? 'invert(1)' : 'none',
-          }}
+          className={`navbar__logo${isDarkMode ? ' navbar__logo--dark' : ''}`}
           
         />
       </div>

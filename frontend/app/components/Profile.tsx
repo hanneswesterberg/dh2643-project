@@ -890,13 +890,13 @@ export default function UserProfile() {
                                 draggable={false}
                                 onLoad={initializeCrop}
                                 onError={() => showSystemMessage("Upload a valid PNG or JPEG image.", "error")}
-                                className="pointer-events-none absolute max-w-none select-none"
+                                className={`profile-crop-image pointer-events-none absolute max-w-none select-none${cropImageDimensions ? '' : ' profile-crop-image--hidden'}`}
                                 style={cropImageDimensions ? {
-                                    left: cropPosition.x,
-                                    top: cropPosition.y,
-                                    width: cropImageDimensions.width * cropImageDimensions.scale * cropZoom,
-                                    height: cropImageDimensions.height * cropImageDimensions.scale * cropZoom,
-                                } : { visibility: "hidden" }}
+                                    '--crop-left': `${cropPosition.x}px`,
+                                    '--crop-top': `${cropPosition.y}px`,
+                                    '--crop-width': `${cropImageDimensions.width * cropImageDimensions.scale * cropZoom}px`,
+                                    '--crop-height': `${cropImageDimensions.height * cropImageDimensions.scale * cropZoom}px`,
+                                } as React.CSSProperties : undefined}
                             />
                         </div>
                         )}

@@ -9,6 +9,7 @@ import 'ol/ol.css';
 import type { Event, EventFeatureCollection } from '../lib/definition';
 import { getSavedEvents, saveEvent } from './Lib/userAPI';
 import { useSystemMessage } from './SystemMessageProvider';
+import './Map.css';
 
 import Feature from 'ol/Feature';
 import OLMap from 'ol/Map';
@@ -426,15 +427,6 @@ export default function ConcertMap({
         zoom: 11,
       }),
     });
-    const zoomControl = map
-      .getTargetElement()
-      ?.querySelector<HTMLElement>('.ol-zoom');
-    if (zoomControl) {
-      zoomControl.style.top = 'auto';
-      zoomControl.style.bottom = '12.5%';
-      zoomControl.style.left = 'auto';
-      zoomControl.style.right = '0.5em';
-    }
     mapInstanceRef.current = map;
 
     const target = mapRef.current;
@@ -491,7 +483,7 @@ export default function ConcertMap({
         animateFeatureScale(hoveredFeatureRef.current, 1.5);
       }
 
-      target.style.cursor = hoveredFeature ? 'pointer' : '';
+      target.classList.toggle('map-pointer-cursor', Boolean(hoveredFeature));
     };
     map.on('pointermove', handlePointerMove);
 
@@ -574,7 +566,7 @@ export default function ConcertMap({
     map.on('singleclick', handleMapClick);
 
     const handlePointerLeave = () => {
-      target.style.cursor = '';
+      target.classList.remove('map-pointer-cursor');
       animateFeatureScale(hoveredFeatureRef.current, 1);
       hoveredFeatureRef.current = null;
     };
@@ -689,41 +681,16 @@ export default function ConcertMap({
   return (
     <div
       data-theme={isDarkMode ? 'dark' : 'light'}
-      style={{
-        position: 'relative',
-        width: '100%',
-        flex: 1,
-        minHeight: 0,
-        colorScheme: isDarkMode ? 'dark' : 'light',
-      }}
+      data-sidebar-open={isSidebarOpen}
+      className="concert-map"
     >
-    {/* Move OpenLayers zoom buttons to the bottom-right */}
-    <style>{`
-      .ol-zoom {
-        top: auto !important;
-        left: auto !important;
-        bottom: 40px !important;
-        right: 8px !important;
-      }
-    `}</style>
-      <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+      <div ref={mapRef} className="concert-map__canvas" />
       <button
         type="button"
         aria-expanded={isFilterOpen}
         aria-controls="map-filter-box"
         onClick={() => setIsFilterOpen((open) => !open)}
-        style={{
-          position: 'absolute',
-          top: '16px',
-          left: '16px',
-          zIndex: 1001,
-          padding: '10px 14px',
-          borderRadius: '8px',
-          border: '1px solid #d1d5db',
-          background: isDarkMode ? '#1f2937' : 'white',
-          color: isDarkMode ? '#f9fafb' : '#171717',
-          cursor: 'pointer',
-        }}
+        className="concert-map__filter-toggle"
       >
         {isFilterOpen ? 'Hide filters' : 'Show filters'}
       </button>
@@ -762,14 +729,7 @@ export default function ConcertMap({
         aria-label="Dark mode"
         title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
         onClick={() => onDarkModeChange(!isDarkMode)}
-        style={{
-          position: 'absolute',
-          top: '16px',
-          right: isSidebarOpen ? '336px' : '16px',
-          zIndex: 1000,
-          transition: 'right 300ms ease',
-        }}
-        className={`theme-toggle${isDarkMode ? ' theme-toggle--checked' : ''}`}
+        className={`theme-toggle concert-map__theme-toggle${isDarkMode ? ' theme-toggle--checked' : ''}`}
       >
         <span className="theme-toggle__thumb" aria-hidden="true">
           {isDarkMode ? (
@@ -804,17 +764,7 @@ export default function ConcertMap({
       {(loading || (events !== null && events.features.length === 0)) && (
         <div
           role="status"
-          style={{
-            position: 'absolute',
-            top: '16px',
-            left: '16px',
-            zIndex: 1000,
-            padding: '10px 14px',
-            borderRadius: '8px',
-            background: isDarkMode ? '#1f2937' : 'white',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-            color: isDarkMode ? '#f9fafb' : '#171717',
-          }}
+          className="concert-map__status"
         >
           {loading ? 'Loading events…' : 'No events available from the API.'}
         </div>
@@ -822,31 +772,8 @@ export default function ConcertMap({
       {popupElement &&
         createPortal(
           <div
-            style={
-              selectedVenue && !selectedEvent
-                ? {
-                    position: 'relative',
-                    width: 'min(360px, calc(100vw - 24px))',
-                    height: 'min(360px, calc(100vw - 24px))',
-                    overflow: 'visible',
-                    color: isDarkMode ? '#f9fafb' : '#171717',
-                    fontSize: '14px',
-                    pointerEvents: 'auto',
-                  }
-                : {
-                    minWidth: '240px',
-                    maxWidth: '360px',
-                    maxHeight: 'min(70vh, 480px)',
-                    overflowY: 'auto',
-                    padding: '16px 18px',
-                    borderRadius: '8px',
-                    background: isDarkMode ? '#1f2937' : 'white',
-                    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.25)',
-                    color: isDarkMode ? '#f9fafb' : '#171717',
-                    fontSize: '15px',
-                    pointerEvents: 'auto',
-                  }
-            }
+            className={`map-popup${selectedVenue && !selectedEvent ? ' map-popup--venue' : ' map-popup--event'}`}
+            data-theme={isDarkMode ? 'dark' : 'light'}
           >
         {selectedEvent && eventDetails ? (
           <>
@@ -859,16 +786,7 @@ export default function ConcertMap({
                   popupRef.current?.setPositioning('center-center');
                   popupRef.current?.setOffset([0, 0]);
                 }}
-                style={{
-                  marginBottom: '8px',
-                  padding: 0,
-                  border: 0,
-                  background: 'none',
-                  color: isDarkMode ? '#93c5fd' : '#1d4ed8',
-                  cursor: 'pointer',
-                  font: 'inherit',
-                  textDecoration: 'underline',
-                }}
+                className="map-popup__link map-popup__back"
               >
                 Back to {selectedVenue.name} events
               </button>
@@ -886,15 +804,7 @@ export default function ConcertMap({
                       <button
                         type="button"
                         onClick={() => setSelectedArtist(artist)}
-                        style={{
-                          padding: 0,
-                          border: 0,
-                          background: 'none',
-                          color: isDarkMode ? '#93c5fd' : '#1d4ed8',
-                          cursor: 'pointer',
-                          font: 'inherit',
-                          textDecoration: 'underline',
-                        }}
+                        className="map-popup__link"
                       >
                         {artist}
                       </button>
@@ -921,7 +831,7 @@ export default function ConcertMap({
                   href={eventDetails.ticketUrl}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ color: isDarkMode ? '#93c5fd' : '#1d4ed8' }}
+                  className="map-popup__link"
                 >
                   Tickets
                 </a>
@@ -933,13 +843,13 @@ export default function ConcertMap({
                   href={eventDetails.imageUrl}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ color: isDarkMode ? '#93c5fd' : '#1d4ed8' }}
+                  className="map-popup__link"
                 >
                   Event image
                 </a>
               </div>
             )}
-            <div style={{ marginTop: '10px' }}>
+            <div className="map-popup__save">
               <button
                 type="button"
                 onClick={() => void handleSaveEvent(eventDetails.id)}
@@ -947,16 +857,9 @@ export default function ConcertMap({
                   isSaved(eventDetails.id) ||
                   savingEventId === eventDetails.id
                 }
-                style={{
-                  border: 0,
-                  borderRadius: '6px',
-                  padding: '8px 10px',
-                  background: isDarkMode ? 'rgb(255, 132, 0)' : '#2563eb',
-                  color: 'white',
-                  cursor: isSaved(eventDetails.id) ? 'default' : 'pointer',
-                  opacity: savingEventId === eventDetails.id ? 0.65 : 1,
-                  font: 'inherit',
-                }}
+                className="map-popup__save-button"
+                data-saved={isSaved(eventDetails.id)}
+                data-saving={savingEventId === eventDetails.id}
               >
                 {isSaved(eventDetails.id)
                   ? 'Added to your events'
@@ -992,18 +895,7 @@ export default function ConcertMap({
               return (
                 <>
                   <div
-                    style={{
-                      position: 'absolute',
-                      top: selectedVenue.stageNames.length > 1 ? '44px' : 0,
-                      right: 0,
-                      bottom: 0,
-                      left: 0,
-                      width: '100%',
-                      height:
-                        selectedVenue.stageNames.length > 1
-                          ? 'calc(100% - 44px)'
-                          : '100%',
-                    }}
+                    className={`map-venue__events${selectedVenue.stageNames.length > 1 ? ' map-venue__events--multiple-stages' : ''}`}
                   >
                     {pageEvents.map((event, index) => {
                       const angle =
@@ -1058,37 +950,10 @@ export default function ConcertMap({
                               setAnimateWheelEvents(false);
                             }
                           }}
-                          style={{
-                            position: 'absolute',
-                            display: 'grid',
-                            width: '68px',
-                            height: '68px',
-                            placeItems: 'center',
-                            translate: '-50% -50%',
-                            padding: '6px',
-                            border: '3px solid white',
-                            borderRadius: '50%',
-                            background: getMarkerColor(isDarkMode),
-                            boxShadow: '0 3px 10px rgba(0, 0, 0, 0.35)',
-                            color: 'white',
-                            cursor: 'pointer',
-                            fontSize:
-                              artistLabel.length > 24
-                                ? '8px'
-                                : artistLabel.length > 16
-                                  ? '9px'
-                                  : '10px',
-                            fontWeight: 600,
-                            lineHeight: 1.15,
-                            textAlign: 'center',
-                          }}
+                          className={`map-venue__event${artistLabel.length > 24 ? ' map-venue__event--small' : artistLabel.length > 16 ? ' map-venue__event--medium' : ''}`}
                         >
                           <span
-                            style={{
-                              width: '100%',
-                              minWidth: 0,
-                              overflowWrap: 'anywhere',
-                            }}
+                            className="map-venue__label"
                           >
                             {artistLabel}
                           </span>
@@ -1098,21 +963,7 @@ export default function ConcertMap({
                   </div>
                   {selectedVenue.stageNames.length > 1 && (
                     <label
-                      style={{
-                        position: 'absolute',
-                        top: '4px',
-                        left: '50%',
-                        zIndex: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        width: 'min(320px, calc(100% - 16px))',
-                        transform: 'translateX(-50%)',
-                        padding: '5px 8px',
-                        borderRadius: '8px',
-                        background: isDarkMode ? '#1f2937' : 'white',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
-                      }}
+                      className="map-venue__stage"
                     >
                       <span>Stage</span>
                       <select
@@ -1123,12 +974,7 @@ export default function ConcertMap({
                           setSelectedStage(change.target.value || null);
                           setVenueEventsPage(0);
                         }}
-                        style={{
-                          minWidth: 0,
-                          flex: 1,
-                          background: isDarkMode ? '#111827' : 'white',
-                          color: isDarkMode ? '#ebebeb' : '#171717',
-                        }}
+                        className="map-venue__stage-select"
                       >
                         <option value="">All stages</option>
                         {selectedVenue.stageNames.map((stageName) => (
@@ -1152,59 +998,17 @@ export default function ConcertMap({
                       setSelectedVenue(null);
                       setSelectedStage(null);
                     }}
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      display: 'grid',
-                      width: '76px',
-                      height: '76px',
-                      placeItems: 'center',
-                      transform: 'translate(-50%, -50%)',
-                      padding: '8px',
-                      border: '4px solid white',
-                      borderRadius: '50%',
-                      background: getMarkerColor(isDarkMode),
-                      boxShadow: '0 3px 12px rgba(0, 0, 0, 0.4)',
-                      color: 'white',
-                      cursor: 'pointer',
-                      fontSize:
-                        centerMarkerLabel.length > 26
-                          ? '8px'
-                          : centerMarkerLabel.length > 18
-                            ? '9px'
-                            : '11px',
-                      fontWeight: 700,
-                      lineHeight: 1.1,
-                      textAlign: 'center',
-                    }}
+                    className={`map-venue__center${centerMarkerLabel.length > 26 ? ' map-venue__center--small' : centerMarkerLabel.length > 18 ? ' map-venue__center--medium' : ''}`}
                   >
                     <span
-                      style={{
-                        width: '100%',
-                        minWidth: 0,
-                        overflowWrap: 'anywhere',
-                      }}
+                      className="map-venue__label"
                     >
                       {centerMarkerLabel}
                     </span>
                   </button>
                   {pageCount > 1 && (
                     <div
-                      style={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '10px',
-                        padding: '3px 8px',
-                        borderRadius: '20px',
-                        background: isDarkMode ? '#1f2937' : 'white',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
-                      }}
+                      className="map-venue__pagination"
                     >
                       <button
                         type="button"
@@ -1214,30 +1018,11 @@ export default function ConcertMap({
                           setAnimateWheelEvents(false);
                           setVenueEventsPage((page) => Math.max(0, page - 1))
                         }}
-                        style={{
-                          border: 0,
-                          borderRadius: '50%',
-                          background:
-                            venueEventsPage === 0
-                              ? isDarkMode
-                                ? '#4b5563'
-                                : '#e5e7eb'
-                              : getMarkerColor(isDarkMode),
-                          color:
-                            venueEventsPage === 0
-                              ? isDarkMode
-                                ? '#d1d5db'
-                                : '#6b7280'
-                              : 'white',
-                          cursor: venueEventsPage === 0 ? 'default' : 'pointer',
-                          fontSize: '20px',
-                          width: '32px',
-                          height: '32px',
-                        }}
+                        className="map-venue__page-button"
                       >
                         ←
                       </button>
-                      <span aria-live="polite" style={{ fontSize: '12px' }}>
+                      <span aria-live="polite" className="map-venue__page-count">
                         {venueEventsPage + 1} / {pageCount}
                       </span>
                       <button
@@ -1250,29 +1035,7 @@ export default function ConcertMap({
                             Math.min(pageCount - 1, page + 1)
                           )
                         }}
-                        style={{
-                          border: 0,
-                          borderRadius: '50%',
-                          background:
-                            venueEventsPage === pageCount - 1
-                              ? isDarkMode
-                                ? '#4b5563'
-                                : '#e5e7eb'
-                              : getMarkerColor(isDarkMode),
-                          color:
-                            venueEventsPage === pageCount - 1
-                              ? isDarkMode
-                                ? '#d1d5db'
-                                : '#6b7280'
-                              : 'white',
-                          cursor:
-                            venueEventsPage === pageCount - 1
-                              ? 'default'
-                              : 'pointer',
-                          fontSize: '20px',
-                          width: '32px',
-                          height: '32px',
-                        }}
+                        className="map-venue__page-button"
                       >
                         →
                       </button>
@@ -1291,46 +1054,21 @@ export default function ConcertMap({
       {selectedArtist && (
         <div
           onClick={() => setSelectedArtist(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 2000,
-            display: 'grid',
-            placeItems: 'center',
-            padding: '24px',
-            background: 'rgba(0, 0, 0, 0.55)',
-          }}
+          className="map-artist-overlay"
         >
           <section
             role="dialog"
             aria-modal="true"
             aria-labelledby="artist-dialog-title"
             onClick={(event) => event.stopPropagation()}
-            style={{
-              position: 'relative',
-              width: 'min(100%, 1000px)',
-              height: 'min(85vh, 760px)',
-              overflow: 'auto',
-              padding: '32px',
-              borderRadius: '12px',
-              background: isDarkMode ? '#1f2937' : 'white',
-              color: isDarkMode ? '#f9fafb' : '#171717',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-            }}
+            className="map-artist-dialog"
+            data-theme={isDarkMode ? 'dark' : 'light'}
           >
             <button
               type="button"
               aria-label="Close artist details"
               onClick={() => setSelectedArtist(null)}
-              style={{
-                position: 'absolute',
-                top: '16px',
-                right: '16px',
-                border: 0,
-                background: 'none',
-                cursor: 'pointer',
-                fontSize: '24px',
-              }}
+              className="map-artist-dialog__close"
             >
               ×
             </button>

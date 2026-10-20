@@ -1,0 +1,11 @@
+.navigation-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.navigation-links button {
+  border: 0;
+  background: none;
+  color: pink;
+  cursor: pointer;
+}

@@ -5,17 +5,10 @@ import { useRouter } from 'next/navigation'; // Corrected from 'next/navigation'
 const NavigationLinks: React.FC = () => {
   const router = useRouter();
 
-  const buttonStyle = {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    color: 'pink'
-  };
-
   return (
-    <div style={{ display: 'flex', gap: '1rem' }}> {/* Adjust gap as needed */}
-      <button onClick={() => router.push('/search')} style={buttonStyle}>All</button>
-      <button onClick={() => router.push('/login')} style={buttonStyle}>Log in</button>
+    <div className="navigation-links">
+      <button onClick={() => router.push('/search')}>All</button>
+      <button onClick={() => router.push('/login')}>Log in</button>
     </div>
   );
 };
