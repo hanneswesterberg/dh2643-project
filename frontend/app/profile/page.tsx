@@ -9,7 +9,7 @@ export default function ProfilePage() {
 
   return (
     <main
-      className="profile-page"
+      className={`profile-page${isDarkMode ? ' profile-page--dark' : ' profile-page--light'}`}
       data-theme={isDarkMode ? 'dark' : 'light'}
     >
       <header className="profile-page__header">
@@ -20,7 +20,7 @@ export default function ProfilePage() {
           onThemeChange={setIsDarkMode}
         />
       </header>
-      <div className="profile-content">
+      <div className="profile-page__content">
         <UserProfile />
       </div>
     </main>

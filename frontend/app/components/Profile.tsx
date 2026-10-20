@@ -775,7 +775,7 @@ export default function UserProfile() {
                     type="button"
                     onClick={() => void handleDeleteAccount()}
                     disabled={deletingAccount}
-                    className="event-remove-button"
+                    className="profile-form__delete-button"
                 >
                     {deletingAccount ? "Deleting..." : "Delete account"}
                 </button>

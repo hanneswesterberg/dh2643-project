@@ -212,6 +212,25 @@
   cursor: not-allowed;
 }
 
+.profile-form__delete-button {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #dc2626;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: #dc2626;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-form__delete-button:hover {
+  background: #fef2f2;
+}
+
+.profile-form__delete-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .profile-format-toolbar {
   display: flex;
   gap: 0.5rem;
@@ -369,7 +388,7 @@
   gap: 0.75rem;
 }
 
-.profile-page[data-theme='dark'] .profile-content .profile-button--save.profile-button--disabled {
+.profile-page--dark .profile-button--save.profile-button--disabled {
   background: #9ca3af;
   cursor: not-allowed;
 }
@@ -390,44 +409,44 @@
   border: 0;
 }
 
-.profile-page[data-theme='dark'] .profile-form__file-input::file-selector-button {
+.profile-page--dark .profile-form__file-input::file-selector-button {
   border-color: #9ca3af;
   background: #374151;
   color: #f9fafb;
 }
 
-.profile-page[data-theme='dark'] .profile-form__input--readonly {
+.profile-page--dark .profile-form__input--readonly {
   background: #374151;
   color: #d1d5db;
 }
 
-.profile-page[data-theme='dark'] .profile-button--secondary,
-.profile-page[data-theme='dark'] .profile-format-button {
+.profile-page--dark .profile-button--secondary,
+.profile-page--dark .profile-format-button {
   border-color: #6b7280;
   background: #374151;
   color: #f9fafb;
 }
 
-.profile-page[data-theme='dark'] .profile-button--secondary:hover,
-.profile-page[data-theme='dark'] .profile-format-button:hover {
+.profile-page--dark .profile-button--secondary:hover,
+.profile-page--dark .profile-format-button:hover {
   background: #4b5563;
 }
 
-.profile-page[data-theme='dark'] .profile-format-button--active {
+.profile-page--dark .profile-format-button--active {
   border-color: #9ca3af;
   background: #4b5563;
 }
 
-.profile-page[data-theme='dark'] .profile-crop-dropzone {
+.profile-page--dark .profile-crop-dropzone {
   background: #374151;
   color: #f9fafb;
 }
 
-.profile-page[data-theme='dark'] .profile-crop-dropzone:hover {
+.profile-page--dark .profile-crop-dropzone:hover {
   background: #4b5563;
 }
 
-.profile-page[data-theme='dark'] .profile-crop-dropzone--active {
+.profile-page--dark .profile-crop-dropzone--active {
   background: #2563eb;
 }
 
