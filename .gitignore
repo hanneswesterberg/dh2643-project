@@ -1,6 +1,9 @@
 # Node
 node_modules/
 .next/
+.next-e2e/
+/frontend/test-results/
+/frontend/playwright-report/
 
 # Python
 __pycache__/
@@ -10,3 +13,4 @@ __pycache__/
 # User-uploaded media
 /backend/media/
 concert-map-server_key.pem
+/frontend/.next-e2e

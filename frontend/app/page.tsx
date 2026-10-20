@@ -2,6 +2,7 @@
 import NavBar from './components/navbar/Navbar';
 import { useEffect, useState } from 'react';
 import SideBar from './components/sidebar/Sidebar';
+import { useSystemMessage } from './components/SystemMessageProvider';
 import { getCurrentUser } from './components/Lib/userAPI';
 import type { UserProfileData } from './components/userModel';
 import useThemePreference from './lib/useThemePreference';
@@ -27,7 +28,7 @@ export default function Home() {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useThemePreference();
   const [currentUser, setCurrentUser] = useState<UserProfileData | null>(null);
-  const [sessionError, setSessionError] = useState('');
+  const showSystemMessage = useSystemMessage();
 
   useEffect(() => {
     let isCurrent = true;
@@ -38,8 +39,9 @@ export default function Home() {
       })
       .catch((error: unknown) => {
         if (isCurrent) {
-          setSessionError(
+          showSystemMessage(
             error instanceof Error ? error.message : 'Could not check your sign-in status.',
+            'error',
           );
         }
       });
@@ -47,7 +49,7 @@ export default function Home() {
     return () => {
       isCurrent = false;
     };
-  }, []);
+  }, [showSystemMessage]);
 
   return (
     <main
@@ -70,10 +72,8 @@ export default function Home() {
         currentUser={currentUser}
         onAuthenticated={(user: UserProfileData) => {
           setCurrentUser(user);
-          setSessionError('');
         }}
         onLoggedOut={() => setCurrentUser(null)}
-        sessionError={sessionError}
       />
       <ConcertMap
         isDarkMode={isDarkMode}

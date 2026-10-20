@@ -57,6 +57,53 @@ body {
   color: #f9fafb;
 }
 
+.system-message {
+  position: fixed;
+  z-index: 1200;
+  top: 80px;
+  right: 0;
+  box-sizing: border-box;
+  width: 320px;
+  padding: 16px 20px;
+  color: #ffffff;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+  animation: system-message-enter 300ms ease both;
+}
+
+.system-message--success {
+  background-color: #16a34a;
+}
+
+.system-message--error {
+  background-color: #dc2626;
+}
+
+.system-message--exit {
+  animation: system-message-exit 300ms ease both;
+}
+
+@keyframes system-message-enter {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes system-message-exit {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}
+
 .profile-page {
   min-height: 100vh;
   background: #ffffff;
@@ -248,7 +295,9 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .theme-toggle,
-  .theme-toggle__thumb {
+  .theme-toggle__thumb,
+  .system-message {
     transition: none;
+    animation-duration: 1ms;
   }
 }

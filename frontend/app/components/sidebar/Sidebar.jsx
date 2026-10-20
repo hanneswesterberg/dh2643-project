@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { getCurrentUser, logIn, logOut, signUp } from '../Lib/userAPI';
+import { useSystemMessage } from '../SystemMessageProvider';
 
 export default function SideBar({
   isOpen,
@@ -9,24 +10,19 @@ export default function SideBar({
   currentUser,
   onAuthenticated,
   onLoggedOut,
-  sessionError,
 }) {
   const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [notice, setNotice] = useState('');
+  const showSystemMessage = useSystemMessage();
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setError('');
-    setNotice('');
-
     if (mode === 'register' && password !== confirmPassword) {
-      setError('Passwords do not match.');
+      showSystemMessage('Passwords do not match.', 'error');
       return;
     }
 
@@ -38,7 +34,8 @@ export default function SideBar({
         : await logIn(username, password);
 
       if (!response.ok) {
-        setError(response.data.error ?? `Could not ${mode === 'register' ? 'register' : 'log in'}. Please try again.`);
+        const message = response.data.error ?? `Could not ${mode === 'register' ? 'register' : 'log in'}. Please try again.`;
+        showSystemMessage(message, 'error');
         return;
       }
 
@@ -46,18 +43,19 @@ export default function SideBar({
         setMode('login');
         setPassword('');
         setConfirmPassword('');
-        setNotice('Account created. You can now sign in.');
+        showSystemMessage('Account created. You can now sign in.', 'success');
       } else {
         const user = await getCurrentUser();
         if (!user) {
-          setError('Login succeeded, but your account could not be loaded. Please try again.');
+          showSystemMessage('Login succeeded, but your account could not be loaded. Please try again.', 'error');
           return;
         }
         onAuthenticated(user);
-        setNotice('Logged in successfully.');
+        showSystemMessage('Logged in successfully.', 'success');
       }
     } catch {
-      setError(`Could not connect to the server. Please try to ${mode === 'register' ? 'register' : 'log in'} again.`);
+      const message = `Could not connect to the server. Please try to ${mode === 'register' ? 'register' : 'log in'} again.`;
+      showSystemMessage(message, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -65,22 +63,19 @@ export default function SideBar({
 
   function changeMode(nextMode) {
     setMode(nextMode);
-    setError('');
-    setNotice('');
     setPassword('');
     setConfirmPassword('');
   }
 
   async function handleLogout() {
-    setError('');
-    setNotice('');
     setIsSubmitting(true);
     try {
       await logOut();
       onLoggedOut();
-      setNotice('You have been signed out.');
+      showSystemMessage('You have been signed out.', 'success');
     } catch (logoutError) {
-      setError(logoutError instanceof Error ? logoutError.message : 'Could not log out.');
+      const message = logoutError instanceof Error ? logoutError.message : 'Could not log out.';
+      showSystemMessage(message, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -194,8 +189,6 @@ export default function SideBar({
                 Profile Settings
               </Link>
             </div>
-            {error && <p role="alert">{error}</p>}
-            {notice && <p role="status">{notice}</p>}
             <button
               type="button"
               onClick={handleLogout}
@@ -207,7 +200,6 @@ export default function SideBar({
           </div>
         ) : (
         <form onSubmit={handleSubmit} aria-labelledby="sign-in-heading" className="space-y-4">
-          {sessionError && <p role="alert">{sessionError}</p>}
           <label className="block">
             {isRegistering ? 'Username' : 'Username or email'}
             <input
@@ -280,8 +272,6 @@ export default function SideBar({
               />
             </label>
           )}
-          {error && <p role="alert">{error}</p>}
-          {notice && <p role="status">{notice}</p>}
           <button
             type="submit"
             disabled={isSubmitting}
