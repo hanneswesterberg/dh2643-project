@@ -1,12 +1,14 @@
-import type { CSSProperties } from 'react';
-
 interface ThemeToggleProps {
   isDarkMode: boolean;
   onChange: (isDarkMode: boolean) => void;
-  style?: CSSProperties;
+  className?: string;
 }
 
-export default function ThemeToggle({ isDarkMode, onChange, style }: ThemeToggleProps) {
+export default function ThemeToggle({
+  isDarkMode,
+  onChange,
+  className = '',
+}: ThemeToggleProps) {
   return (
     <button
       type="button"
@@ -15,8 +17,7 @@ export default function ThemeToggle({ isDarkMode, onChange, style }: ThemeToggle
       aria-label="Dark mode"
       title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
       onClick={() => onChange(!isDarkMode)}
-      style={style}
-      className={`theme-toggle${isDarkMode ? ' theme-toggle--checked' : ''}`}
+      className={`theme-toggle${isDarkMode ? ' theme-toggle--checked' : ''} ${className}`}
     >
       <span className="theme-toggle__thumb" aria-hidden="true">
         {isDarkMode ? (

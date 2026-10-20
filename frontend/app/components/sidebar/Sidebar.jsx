@@ -88,15 +88,8 @@ export default function SideBar({
       aria-hidden={!isOpen}
       inert={!isOpen}
       className="sidebar-panel fixed right-0 top-[80px] z-[1100] h-[calc(100vh-80px)] overflow-hidden"
-      style={{
-        width: isOpen ? '320px' : '0px',
-        transition: 'width 300ms ease, background-color 300ms ease, color 300ms ease, box-shadow 300ms ease',
-        backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-        color: isDarkMode ? '#f9fafb' : '#171717',
-        boxShadow: isDarkMode
-          ? '0 10px 25px rgba(0, 0, 0, 0.3)'
-          : '0 10px 25px rgba(0, 0, 0, 0.14)',
-      }}
+      data-theme={isDarkMode ? 'dark' : 'light'}
+      data-open={isOpen}
     >
       <div className="h-full w-80 overflow-y-auto p-6">
         <div className={`${currentUser ? 'mb-2' : 'mb-6'} flex items-center justify-between`}>
@@ -160,11 +153,7 @@ export default function SideBar({
               </div>
               {currentUser.bio && (
                 <div
-                  className="w-full rounded border p-3 text-sm"
-                  style={{
-                    borderColor: isDarkMode ? '#4b5563' : '#d1d5db',
-                    backgroundColor: isDarkMode ? '#111827' : '#f9fafb',
-                  }}
+                  className="sidebar-bio w-full rounded border p-3 text-sm"
                 >
                   <div
                     className="break-words"
@@ -210,11 +199,6 @@ export default function SideBar({
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               className="sidebar-input mt-1 block w-full rounded border p-2"
-              style={{
-                borderColor: isDarkMode ? '#6b7280' : '#d1d5db',
-                backgroundColor: isDarkMode ? '#374151' : '#ffffff',
-                color: isDarkMode ? '#ffffff' : '#171717',
-              }}
             />
           </label>
           {isRegistering && (
@@ -228,11 +212,6 @@ export default function SideBar({
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 className="sidebar-input mt-1 block w-full rounded border p-2"
-                style={{
-                  borderColor: isDarkMode ? '#6b7280' : '#d1d5db',
-                  backgroundColor: isDarkMode ? '#374151' : '#ffffff',
-                  color: isDarkMode ? '#ffffff' : '#171717',
-                }}
               />
             </label>
           )}
@@ -246,11 +225,6 @@ export default function SideBar({
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="sidebar-input mt-1 block w-full rounded border p-2"
-              style={{
-                borderColor: isDarkMode ? '#6b7280' : '#d1d5db',
-                backgroundColor: isDarkMode ? '#374151' : '#ffffff',
-                color: isDarkMode ? '#ffffff' : '#171717',
-              }}
             />
           </label>
           {isRegistering && (
@@ -264,11 +238,6 @@ export default function SideBar({
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 className="sidebar-input mt-1 block w-full rounded border p-2"
-                style={{
-                  borderColor: isDarkMode ? '#6b7280' : '#d1d5db',
-                  backgroundColor: isDarkMode ? '#374151' : '#ffffff',
-                  color: isDarkMode ? '#ffffff' : '#171717',
-                }}
               />
             </label>
           )}

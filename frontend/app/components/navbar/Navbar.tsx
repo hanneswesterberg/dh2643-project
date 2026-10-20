@@ -31,31 +31,13 @@ const Navbar = (props: NavbarProps) => {
     return (
       <nav
         aria-label="Main navigation"
-        className={`navbar ${isDarkMode ? 'navbar--dark' : 'navbar--light'}`}
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          position: 'relative',
-          height: '80px',
-          boxSizing: 'border-box',
-          padding: '1rem',
-          alignItems: 'center',
-        }}
+        className={`navbar navbar--logo-only ${isDarkMode ? 'navbar--dark' : 'navbar--light'}`}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div className="navbar__group">
           <Logo isDarkMode={isDarkMode} />
         </div>
         {props.title && (
-          <h1
-            style={{
-              position: 'absolute',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              margin: 0,
-              fontSize: '2.5rem',
-              fontWeight: 600,
-            }}
-          >
+          <h1 className="navbar__title">
             {props.title}
           </h1>
         )}
@@ -63,7 +45,7 @@ const Navbar = (props: NavbarProps) => {
           <ThemeToggle
             isDarkMode={isDarkMode}
             onChange={props.onThemeChange}
-            style={{ position: 'absolute', right: '16px' }}
+            className="navbar__theme-toggle"
           />
         )}
       </nav>
@@ -84,16 +66,8 @@ const Navbar = (props: NavbarProps) => {
   return (
     <nav
       className={`navbar ${isDarkMode ? 'navbar--dark' : 'navbar--light'}`}
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        height: '80px',
-        boxSizing: 'border-box',
-        padding: '1rem',
-        alignItems: 'center',
-      }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div className="navbar__group">
         <Logo isDarkMode={isDarkMode} />
       </div>
 
@@ -101,7 +75,7 @@ const Navbar = (props: NavbarProps) => {
         <SearchBar isDarkMode={isDarkMode} />
       </Suspense>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div className="navbar__group">
         <Login
           onLogin={handleLogin}
           username={username}

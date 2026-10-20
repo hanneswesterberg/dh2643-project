@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "./components/Map.css";
+import "./components/MapFilterBox.css";
+import "./components/Navbar.css";
+import "./components/Profile.css";
+import "./components/Sidebar.css";
+import "./components/SavedEvents.css";
+import "./components/LoginPopup.css";
+import "./components/NavigationLinks.css";
 import SystemMessageProvider from "./components/SystemMessageProvider";
 //import NavBar from "./components/navbar/Navbar";
 //import { useState } from "react";

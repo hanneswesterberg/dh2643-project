@@ -130,8 +130,7 @@ export default function SavedEvents() {
                   alt=""
                   width={133}
                   height={130}
-                  className="shrink-0 rounded object-cover"
-                  style={{ width: '133px', height: '130px', minWidth: '133px' }}
+                  className="saved-event-image shrink-0 rounded object-cover"
                 />
               )}
               <div className="min-w-0">

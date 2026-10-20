@@ -1,0 +1,59 @@
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  height: 80px;
+  padding: 1rem;
+}
+
+.navbar--logo-only {
+  position: relative;
+}
+
+.navbar__group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.navbar__logo-link {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.navbar__logo {
+  width: 100px;
+  height: auto;
+  object-fit: contain;
+}
+
+.navbar__logo--dark {
+  filter: invert(1);
+}
+
+.navbar__title {
+  position: absolute;
+  left: 50%;
+  margin: 0;
+  transform: translateX(-50%);
+  font-size: 2.5rem;
+  font-weight: 600;
+}
+
+.navbar__theme-toggle {
+  position: absolute;
+  right: 16px;
+}
+
+.navbar__login {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}

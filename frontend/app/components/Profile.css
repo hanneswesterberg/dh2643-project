@@ -1,0 +1,10 @@
+.profile-crop-image {
+  left: var(--crop-left);
+  top: var(--crop-top);
+  width: var(--crop-width);
+  height: var(--crop-height);
+}
+
+.profile-crop-image--hidden {
+  visibility: hidden;
+}
