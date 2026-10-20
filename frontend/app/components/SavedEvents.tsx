@@ -4,15 +4,17 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getSavedEvents, removeSavedEvent } from './Lib/userAPI';
 import type { SavedEvent } from './userModel';
+import { useSystemMessage } from './SystemMessageProvider';
 
 type EventSortOrder = 'name' | 'date' | 'added';
 
 export default function SavedEvents() {
   const [events, setEvents] = useState<SavedEvent[]>([]);
-  const [error, setError] = useState('');
+  const [loadFailed, setLoadFailed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [removingEventId, setRemovingEventId] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState<EventSortOrder>('name');
+  const showSystemMessage = useSystemMessage();
 
   const sortedEvents = [...events].sort((first, second) => {
     let comparison = 0;
@@ -42,10 +44,12 @@ export default function SavedEvents() {
       })
       .catch((loadError: unknown) => {
         if (isCurrent) {
-          setError(
+          setLoadFailed(true);
+          showSystemMessage(
             loadError instanceof Error
               ? loadError.message
               : 'Could not load your saved events.',
+            'error',
           );
         }
       })
@@ -56,22 +60,21 @@ export default function SavedEvents() {
     return () => {
       isCurrent = false;
     };
-  }, []);
+  }, [showSystemMessage]);
 
   async function removeEvent(eventId: number) {
-    setError('');
     setRemovingEventId(eventId);
     try {
       await removeSavedEvent(eventId);
       setEvents((savedEvents) =>
         savedEvents.filter((event) => event.id !== eventId),
       );
+      showSystemMessage('Event removed from your events.', 'success');
     } catch (removeError) {
-      setError(
-        removeError instanceof Error
-          ? removeError.message
-          : 'Could not remove this event.',
-      );
+      const message = removeError instanceof Error
+        ? removeError.message
+        : 'Could not remove this event.';
+      showSystemMessage(message, 'error');
     } finally {
       setRemovingEventId(null);
     }
@@ -110,8 +113,7 @@ export default function SavedEvents() {
         )}
       </div>
       {loading && <p role="status">Loading your events...</p>}
-      {error && <p role="alert">{error}</p>}
-      {!loading && events.length === 0 && !error && (
+      {!loading && events.length === 0 && !loadFailed && (
         <p>You have not added any events yet.</p>
       )}
       <ul className="space-y-3">

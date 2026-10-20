@@ -8,6 +8,7 @@ import 'ol/ol.css';
 
 import type { Event, EventFeatureCollection } from '../lib/definition';
 import { getSavedEvents, saveEvent } from './Lib/userAPI';
+import { useSystemMessage } from './SystemMessageProvider';
 
 import Feature from 'ol/Feature';
 import OLMap from 'ol/Map';
@@ -174,7 +175,6 @@ export default function ConcertMap({
   const [venueEventsPage, setVenueEventsPage] = useState(0);
   const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [popupElement, setPopupElement] = useState<HTMLDivElement | null>(null);
   const isDarkModeRef = useRef(isDarkMode);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -183,8 +183,7 @@ export default function ConcertMap({
   const [savedEventIds, setSavedEventIds] = useState<Set<number>>(new Set());
   const [savedEventsUsername, setSavedEventsUsername] = useState<string | null>(null);
   const [savingEventId, setSavingEventId] = useState<number | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const showSystemMessage = useSystemMessage();
 
   const clearSelection = () => {
     popupRef.current?.setPosition(undefined);
@@ -226,16 +225,15 @@ export default function ConcertMap({
         if (isCurrent) {
           setSavedEventIds(new Set(savedEvents.map((event) => event.id)));
           setSavedEventsUsername(authenticatedUsername);
-          setSaveError(null);
-          setSaveNotice(null);
         }
       })
       .catch((caughtError: unknown) => {
         if (isCurrent) {
-          setSaveError(
+          showSystemMessage(
             caughtError instanceof Error
               ? caughtError.message
               : 'Could not load your saved events.',
+            'error',
           );
         }
       });
@@ -243,13 +241,11 @@ export default function ConcertMap({
     return () => {
       isCurrent = false;
     };
-  }, [authenticatedUsername]);
+  }, [authenticatedUsername, showSystemMessage]);
 
   async function handleSaveEvent(eventId: number) {
-    setSaveError(null);
-    setSaveNotice(null);
     if (!authenticatedUsername) {
-      setSaveError('Sign in to add events to your profile.');
+      showSystemMessage('Sign in to add events to your profile.', 'error');
       onLoginRequired();
       return;
     }
@@ -259,13 +255,12 @@ export default function ConcertMap({
       await saveEvent(eventId);
       setSavedEventIds((current) => new Set(current).add(eventId));
       setSavedEventsUsername(authenticatedUsername);
-      setSaveNotice('Event added to your events.');
+      showSystemMessage('Event added to your events.', 'success');
     } catch (caughtError) {
-      setSaveError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : 'Could not save this event.',
-      );
+      const message = caughtError instanceof Error
+        ? caughtError.message
+        : 'Could not save this event.';
+      showSystemMessage(message, 'error');
     } finally {
       setSavingEventId(null);
     }
@@ -293,10 +288,11 @@ export default function ConcertMap({
         setEvents(data);
       } catch (caughtError) {
         if (!controller.signal.aborted) {
-          setError(
+          showSystemMessage(
             caughtError instanceof Error
               ? caughtError.message
-              : 'Could not load events from the API.'
+              : 'Could not load events from the API.',
+            'error',
           );
         }
       } finally {
@@ -308,7 +304,7 @@ export default function ConcertMap({
 
     void loadEvents();
     return () => controller.abort();
-  }, []);
+  }, [showSystemMessage]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -737,11 +733,9 @@ export default function ConcertMap({
           )}
         </span>
       </button>
-      {(loading ||
-        error ||
-        (events !== null && events.features.length === 0)) && (
+      {(loading || (events !== null && events.features.length === 0)) && (
         <div
-          role={error ? 'alert' : 'status'}
+          role="status"
           style={{
             position: 'absolute',
             top: '16px',
@@ -751,11 +745,10 @@ export default function ConcertMap({
             borderRadius: '8px',
             background: isDarkMode ? '#1f2937' : 'white',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
-            color: error ? '#b91c1c' : isDarkMode ? '#f9fafb' : '#171717',
+            color: isDarkMode ? '#f9fafb' : '#171717',
           }}
         >
-          {error ??
-            (loading ? 'Loading events…' : 'No events available from the API.')}
+          {loading ? 'Loading events…' : 'No events available from the API.'}
         </div>
       )}
       {popupElement &&
@@ -904,8 +897,6 @@ export default function ConcertMap({
                     : 'Add to your events'}
               </button>
             </div>
-            {saveError && <p role="alert">{saveError}</p>}
-            {saveNotice && <p role="status">{saveNotice}</p>}
           </>
         ) : selectedVenue ? (
           <>
