@@ -136,21 +136,21 @@ export async function getSavedEvents(): Promise<SavedEvent[]> {
 
 export async function getCurrentUser(): Promise<UserProfileData | null> {
     const response = await fetch(
-        `${API}/me/`,
+        "/api/auth-check", // Calls Next.js route instead of Django
         {
             method: "GET",
-            credentials: "include",
+            credentials: "include", 
         }
     );
 
-    if (response.status === 401) {
-        return null;
-    }
     if (!response.ok) {
         throw new Error("Could not check your sign-in status.");
     }
 
-    return await response.json() as UserProfileData;
+    // The proxy route returns { user: data } or { user: null }
+    const data = await response.json();
+    
+    return data.user as UserProfileData | null;
 }
 
 export async function loadProfile() {
