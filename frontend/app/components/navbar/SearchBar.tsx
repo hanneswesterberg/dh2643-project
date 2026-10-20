@@ -24,6 +24,10 @@ export default function SearchBar({ isDarkMode = false }: SearchBarProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    setTerm(searchParams.get('search') || '');
+  }, [searchParams]);
+
+  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
         setIsOpen(false);
