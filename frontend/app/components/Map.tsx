@@ -612,7 +612,15 @@ export default function ConcertMap({
         selectedEventRef.current = null;
         setSelectedEvent(null);
       }
-      popup.setPosition(fromLonLat(venue.coordinates));
+      const venueCoordinate = fromLonLat(venue.coordinates);
+      const view = map.getView();
+      const currentZoom = view.getZoom() ?? 11;
+      view.animate({
+        center: venueCoordinate,
+        zoom: Math.max(currentZoom, 13),
+        duration: 250,
+      });
+      popup.setPosition(venueCoordinate);
     };
     map.on('singleclick', handleMapClick);
 
@@ -846,9 +854,9 @@ export default function ConcertMap({
                   popupRef.current?.setPositioning('center-center');
                   popupRef.current?.setOffset([0, 0]);
                 }}
-                className="map-popup__link map-popup__back"
+                className="map-popup__back-button"
               >
-                Back to {selectedVenue.name} events
+                Back to venue
               </button>
             )}
             <div>
@@ -879,19 +887,17 @@ export default function ConcertMap({
                 ? new Date(eventDetails.end).toLocaleString()
                 : 'Unavailable'}
             </div>
-            {eventDetails.ticketUrl && (
-              <div>
+            <div className="map-popup__actions">
+              {eventDetails.ticketUrl && (
                 <a
                   href={eventDetails.ticketUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="map-popup__link"
+                  className="map-popup__ticket-button"
                 >
-                  Tickets
+                  Get tickets
                 </a>
-              </div>
-            )}
-            <div className="map-popup__save">
+              )}
               <button
                 type="button"
                 onClick={() => void handleSaveEvent(eventDetails.id)}
