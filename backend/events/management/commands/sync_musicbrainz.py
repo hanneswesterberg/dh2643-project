@@ -67,9 +67,16 @@ class Command(BaseCommand):
                             genres_to_add = []
                             
                             for tag in tags:
-                                tag_name = tag.get("name", "").strip().lower()
-                                if tag_name:
-                                    genre_obj, _ = Genre.objects.get_or_create(name=tag_name)
+                                raw_tag_name = tag.get("name", "").strip()
+                                
+                                # only allow letters, spaces, dashes, and apostrophes
+                                is_valid = raw_tag_name and all(c.isalpha() or c in " -'" for c in raw_tag_name)
+                                
+                                if is_valid:
+                                    # Convert to title case (e.g., "pop rock" to "Pop Rock")
+                                    formatted_tag_name = raw_tag_name.title()
+                                    
+                                    genre_obj, _ = Genre.objects.get_or_create(name=formatted_tag_name)
                                     genres_to_add.append(genre_obj)
                             
                             artist.save()
@@ -91,6 +98,5 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.ERROR(f"Network Error: {e}"))
                     break
             
-            # Standard MusicBrainz rate limit sleep between different artists
             time.sleep(1.05)
-
+            
