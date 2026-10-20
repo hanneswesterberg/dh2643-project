@@ -319,6 +319,16 @@ export default function ConcertMap({
   useEffect(() => {
     if (!mapRef.current) return;
 
+    const originalGetContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (
+      this: HTMLCanvasElement, contextId: string, options?: any
+    ) {
+      if (contextId === '2d') {
+        options = { ...options, willReadFrequently: true };
+      }
+      return originalGetContext.call(this, contextId, options);
+    } as any;
+
     const markerSource = new VectorSource<Feature<Point>>();
     markerSourceRef.current = markerSource;
     const clusterSource = new Cluster({
