@@ -28,6 +28,8 @@ import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
 import Text from 'ol/style/Text';
 
+import { useSearchParams } from 'next/navigation';
+
 type EventDetails = {
   ticksterId: string;
   name: string;
@@ -168,6 +170,10 @@ export default function ConcertMap({
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+
+  //searchbar connection
+  const searchParams = useSearchParams();
+  const searchTerm = searchParams.get(('search') || '')?.trim();
 
   const handleToggleGenre = (genre: string) => {
     setSelectedGenres((prev) =>
@@ -390,6 +396,22 @@ export default function ConcertMap({
     if (!events) return [];
 
     return events.features.filter((event) => {
+      // Filter by search term
+      if (searchTerm) {
+        const query = searchTerm.toLocaleLowerCase();
+
+        const matchesSearch =
+          event.properties.name.toLocaleLowerCase().includes(query) ||
+          event.properties.venue_name.toLocaleLowerCase().includes(query) ||
+          event.properties.artists.some((artist) =>
+            artist.name.toLocaleLowerCase().includes(query)
+          ) ||
+          getEventGenres(event).some((genre) =>
+            genre.toLocaleLowerCase().includes(query)
+          );
+
+        if (!matchesSearch) return false;
+      }
       // Check Genre match (matches if no genres are checked, or if the event has at least one checked genre)
       if (selectedGenres.length > 0) {
         const eventGenres = getEventGenres(event);
@@ -408,7 +430,8 @@ export default function ConcertMap({
 
       return true;
     });
-  }, [events, selectedGenres, startDate, endDate]);
+    
+  }, [events, searchTerm, selectedGenres, startDate, endDate]);
 
   useEffect(() => {
   if (!events) return;
