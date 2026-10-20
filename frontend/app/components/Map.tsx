@@ -245,7 +245,6 @@ export default function ConcertMap({
   const [animateWheelEvents, setAnimateWheelEvents] = useState(false);
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
   const [venueEventsPage, setVenueEventsPage] = useState(0);
-  const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [popupElement, setPopupElement] = useState<HTMLDivElement | null>(null);
   const isDarkModeRef = useRef(isDarkMode);
@@ -826,6 +825,15 @@ export default function ConcertMap({
           <div
             className={`map-popup${selectedVenue && !selectedEvent ? ' map-popup--venue' : ' map-popup--event'}`}
             data-theme={isDarkMode ? 'dark' : 'light'}
+            style={
+              eventDetails?.imageUrl
+                ? {
+                    backgroundImage: `linear-gradient(rgba(${isDarkMode ? '31, 41, 55' : '255, 255, 255'}, 0.6), rgba(${isDarkMode ? '31, 41, 55' : '255, 255, 255'}, 0.6)), url(${JSON.stringify(eventDetails.imageUrl)})`,
+                    backgroundPosition: 'center',
+                    backgroundSize: 'cover',
+                  }
+                : undefined
+            }
           >
         {selectedEvent && eventDetails ? (
           <>
@@ -853,13 +861,7 @@ export default function ConcertMap({
                 ? eventDetails.artists.map((artist, index) => (
                     <span key={`${artist}-${index}`}>
                       {index > 0 && ', '}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedArtist(artist)}
-                        className="map-popup__link"
-                      >
-                        {artist}
-                      </button>
+                      {artist}
                     </span>
                   ))
                 : 'Unavailable'}
@@ -886,18 +888,6 @@ export default function ConcertMap({
                   className="map-popup__link"
                 >
                   Tickets
-                </a>
-              </div>
-            )}
-            {eventDetails.imageUrl && (
-              <div>
-                <a
-                  href={eventDetails.imageUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="map-popup__link"
-                >
-                  Event image
                 </a>
               </div>
             )}
@@ -1103,32 +1093,6 @@ export default function ConcertMap({
           </div>,
           popupElement
         )}
-      {selectedArtist && (
-        <div
-          onClick={() => setSelectedArtist(null)}
-          className="map-artist-overlay"
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="artist-dialog-title"
-            onClick={(event) => event.stopPropagation()}
-            className="map-artist-dialog"
-            data-theme={isDarkMode ? 'dark' : 'light'}
-          >
-            <button
-              type="button"
-              aria-label="Close artist details"
-              onClick={() => setSelectedArtist(null)}
-              className="map-artist-dialog__close"
-            >
-              ×
-            </button>
-            <h2 id="artist-dialog-title">{selectedArtist}</h2>
-            <p>Artist information will appear here.</p>
-          </section>
-        </div>
-      )}
     </div>
   );
 }
