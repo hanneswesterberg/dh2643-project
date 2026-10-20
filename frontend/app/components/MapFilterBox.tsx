@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, {useState} from 'react';
 
 interface MapFilterBoxProps {
   genres: string[];
@@ -69,7 +69,7 @@ export default function MapFilterBox({
           alignItems: 'center',
         }}
       >
-        <strong style={{ fontSize: '14px' }}>Filter Events</strong>
+        <strong style={{ fontSize: '14px' }}>Filters</strong>
         <span style={{ fontSize: '12px', opacity: 0.75 }}>
           {totalMatching} matching
         </span>

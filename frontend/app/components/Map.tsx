@@ -188,6 +188,9 @@ export default function ConcertMap({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
+  //toggleable filter box
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
   const clearSelection = () => {
     popupRef.current?.setPosition(undefined);
     selectedEventRef.current = null;
@@ -691,29 +694,54 @@ export default function ConcertMap({
       }
     `}</style>
       <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
-      <MapFilterBox
-        genres={availableGenres}
-        selectedGenres={selectedGenres}
-        onToggleGenre={handleToggleGenre}
-        startDate={startDate}
-        onStartDateChange={(date) => {
-          clearSelection();
-          setStartDate(date);
+      <button
+        type="button"
+        aria-expanded={isFilterOpen}
+        aria-controls="map-filter-box"
+        onClick={() => setIsFilterOpen((open) => !open)}
+        style={{
+          position: 'absolute',
+          top: '16px',
+          left: '16px',
+          zIndex: 1001,
+          padding: '10px 14px',
+          borderRadius: '8px',
+          border: '1px solid #d1d5db',
+          background: isDarkMode ? '#1f2937' : 'white',
+          color: isDarkMode ? '#f9fafb' : '#171717',
+          cursor: 'pointer',
         }}
-        endDate={endDate}
-        onEndDateChange={(date) => {
-          clearSelection();
-          setEndDate(date);
-        }}
-        onReset={() => {
-          clearSelection();
-          setSelectedGenres([]);
-          setStartDate('');
-          setEndDate('');
-        }}
-        totalMatching={filteredFeatures.length}
-        isDarkMode={isDarkMode}
-      />
+      >
+        {isFilterOpen ? 'Hide filters' : 'Show filters'}
+      </button>
+      {isFilterOpen && (
+        <div id="map-filter-box"> 
+          <MapFilterBox
+            genres={availableGenres}
+            selectedGenres={selectedGenres}
+            onToggleGenre={handleToggleGenre}
+            startDate={startDate}
+            onStartDateChange={(date) => {
+              clearSelection();
+              setStartDate(date);
+            }}
+            endDate={endDate}
+            onEndDateChange={(date) => {
+              clearSelection();
+              setEndDate(date);
+            }}
+            onReset={() => {
+              clearSelection();
+              setSelectedGenres([]);
+              setStartDate('');
+              setEndDate('');
+            }}
+            totalMatching={filteredFeatures.length}
+            isDarkMode={isDarkMode}
+          />
+        </div>
+          )}
+      
       <button
         type="button"
         role="switch"
