@@ -92,5 +92,5 @@ class Command(BaseCommand):
                     break
             
             # Standard MusicBrainz rate limit sleep between different artists
-            time.sleep(1.2)
+            time.sleep(1.05)
 

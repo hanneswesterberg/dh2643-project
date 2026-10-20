@@ -1,7 +1,8 @@
 import { SavedEvent, UserProfileData } from "../userModel";
 
-const API = "/api/users";
-const EVENTS_API = "/api/events";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API = `${BASE_URL}/api/users`;
+const EVENTS_API = `${BASE_URL}/api/events`;
 
 function getCookie(name: string): string | null {
     if (typeof document === "undefined") return null;

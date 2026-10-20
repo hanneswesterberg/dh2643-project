@@ -71,6 +71,7 @@ export default function MapFilterBox({
       >
         <strong style={{ fontSize: '14px' }}>Filter Events</strong>
         <span style={{ fontSize: '12px', opacity: 0.75 }}>
+          {totalMatching} matching
         </span>
       </div>
 
